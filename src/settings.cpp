@@ -8,7 +8,7 @@ static Log lg("Settings", Log::LogLevel::Debug);
 
 
 // Settings definitions
-json settings::teslaSettings, settings::calendarSettings, settings::generalSettings, settings::carSettings;
+json settings::calendarSettings;
 
 
 // Cal
@@ -42,12 +42,9 @@ void settings::readSettings(string silent)
 			intshiftStartBias = std::stoi(u_shiftStartBias);
 			u_shiftEndBias = calendarSettings["shiftEndBias"];
 			intshiftEndBias = std::stoi(u_shiftEndBias);
-			calendarSettings["wordsToIgnore"].get_to(u_wordsToIgnore);
-
-
-			u_commuteTime = carSettings["commuteTime"];
+			u_commuteTime = calendarSettings["commuteTime"];
 			intcommuteTime = std::stoi(u_commuteTime);
-
+			calendarSettings["wordsToIgnore"].get_to(u_wordsToIgnore);
 
 
 			lg.b();
@@ -65,6 +62,23 @@ void settings::readSettings(string silent)
 		throw string("settings.json type_error");
 	}*/
 
+	// Print this unless reading settings silently
+	if (silent != "silent")
+	{
+		lg.b();
+
+		if (settings::ignoredWordsExist())
+		{
+			string ignoredString = settings::ignoredWordsPrint();
+			lg.b("Cal: Calendar URL: " + u_calendarURL +
+				"\nCal: Word(s) to ignore events in calendar (", u_wordsToIgnore.size(), "): " + ignoredString);
+		}
+		else {
+			lg.b("Cal: Calendar URL: " + u_calendarURL);
+			lg.b("No ignored words were specified.");
+		}
+		lg.b("Cal: Commute time setting: " + u_commuteTime + " minutes.");
+	}
 	return;
 }
 

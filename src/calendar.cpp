@@ -14,27 +14,6 @@ calEvent* calEvent::lastTriggeredEvent;
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 // Get long string of raw calendar data from URL
 string GetCalRawData() {
 	try

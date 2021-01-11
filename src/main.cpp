@@ -2,6 +2,7 @@
 #include "utils.h"
 #include "settings.h"
 #include <curl/curl.h>
+#include <unistd.h>
 
 using std::string;
 
@@ -79,10 +80,32 @@ const string string_time_and_date(tm tstruct)
 	return buf;
 }
 
+int initAll()
+{
+	try {
+		settings::readSettings();
+		nowTime_secs = time(&nowTime_secs); // update to current time
+		lg.i("CalendarTrigger init");
+		InternetConnected();
+		initiateCal();
+	}
+	catch (string e) {
+		lg.e("Error: ", e);
+		return 1;
+	}
+	return 0;
+}
+
 int main()
 {
-	nowTime_secs = time(&nowTime_secs); // update to current time
-	lg.i("CalendarTrigger init");
-	InternetConnected();
+	while (true)
+	{
+		if (initAll() != 0) {
+			lg.e("Stopping, error in initAll");
+			return EXIT_FAILURE;
+		}
+		sleep(5);
 
+		calEvent::cleanup(); // always cleanup
+	}
 }

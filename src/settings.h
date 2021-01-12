@@ -11,6 +11,7 @@ class settings
 public:
 	// Initial breakdown into separate json objects
 	static json teslaSettings, calendarSettings, generalSettings, carSettings;
+	static std::vector<settings*> people;
 
 
 	// Important stuff, Tesla official token, Tesla URL
@@ -73,27 +74,27 @@ public:
 
 	// Calendar Setting
 	// URL to Calendar file for event triggers
-	static string u_calendarURL;
+	string u_calendarURL;
 	// Calendar Setting
 	// (Minutes) If you leave home to target arriving at work earlier than event start, enter a NEGATIVE number.
 	// Ex: Want to arrive at work 15 mins before event start? Enter -15. EXCLUDES commute time. 
 	// The car will be ready at (commuteTime - shiftStartBias) mins before event start.
-	static string u_shiftStartBias;
-	static int intshiftStartBias;
+	string u_shiftStartBias;
+	int intshiftStartBias;
 	// Calendar Setting
 	// (Minutes), if you leave work when you calendar event ends, this should be 0.
 	// If you leave work early, enter a negative number, if late, positive number.
-	static string u_shiftEndBias;
-	static int intshiftEndBias;
+	string u_shiftEndBias;
+	int intshiftEndBias;
 	// Calendar Setting
 	// (Minutes) Drive time between home and work
-	static string u_commuteTime;
-	static int intcommuteTime;
+	string u_commuteTime;
+	int intcommuteTime;
 	// Calendar Setting
 	// Enter words that will cause the program to IGNORE events containing them
-	static std::vector<string> u_wordsToIgnore;
-	static bool ignoredWordsExist();
-	static string ignoredWordsPrint();
+	std::vector<string> u_wordsToIgnore;
+	bool ignoredWordsExist();
+	string ignoredWordsPrint();
 
 
 	// Tesla Setting

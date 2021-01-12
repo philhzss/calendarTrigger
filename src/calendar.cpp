@@ -16,15 +16,18 @@ calEvent* calEvent::lastTriggeredEvent;
 
 // Get long string of raw calendar data from URL
 string GetCalRawData() {
-	try
+	for (settings* person : settings::people)
 	{
-		string rawCalContent = curl_GET(settings::u_calendarURL);
-		return rawCalContent;
+		try
+		{
+			string rawCalContent = curl_GET(person->u_calendarURL);
+			return rawCalContent;
+		}
+		catch (string e)
+		{
+			throw "initiateCal error: " + e + "\nCheck calendar URL??? Internet connection?";
+		};
 	}
-	catch (string e)
-	{
-		throw "initiateCal error: " + e + "\nCheck calendar URL??? Internet connection?";
-	};
 }
 
 // Take the entire ICS file string and convert it into vector of strings with events

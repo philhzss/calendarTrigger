@@ -9,18 +9,10 @@ static Log lg("Settings", Log::LogLevel::Debug);
 
 // Settings definitions
 json settings::calendarSettings;
+settings person1;
+settings person2;
 
-
-// Cal
-string settings::u_calendarURL;
-string settings::u_shiftStartBias;
-int settings::intshiftStartBias;
-string settings::u_shiftEndBias;
-int settings::intshiftEndBias;
-std::vector<string> settings::u_wordsToIgnore;
-
-string settings::u_commuteTime;
-int settings::intcommuteTime;
+std::vector<settings*> settings::people;
 
 
 
@@ -31,25 +23,25 @@ void settings::readSettings(string silent)
 		std::ifstream stream("settings.json");
 		stream >> settingsForm;
 
-		// Get the settings cubcategories
-		calendarSettings = settingsForm["Calendar Settings"];
-
-		//Save the data from settings in the program variables
+		// Initially do person1
+		calendarSettings = settingsForm["Person1 Settings"];
+		for (settings* person : people)
 		{
-			// CALENDAR SETTINGS
-			u_calendarURL = calendarSettings["calendarURL"];
-			u_shiftStartBias = calendarSettings["shiftStartBias"];
-			intshiftStartBias = std::stoi(u_shiftStartBias);
-			u_shiftEndBias = calendarSettings["shiftEndBias"];
-			intshiftEndBias = std::stoi(u_shiftEndBias);
-			u_commuteTime = calendarSettings["commuteTime"];
-			intcommuteTime = std::stoi(u_commuteTime);
-			calendarSettings["wordsToIgnore"].get_to(u_wordsToIgnore);
-
-
-			lg.b();
-			lg.d("Settings file settings.json successfully read.");
+			person->u_calendarURL = calendarSettings["calendarURL"];
+			person->u_shiftStartBias = calendarSettings["shiftStartBias"];
+			person->intshiftStartBias = std::stoi(person->u_shiftStartBias);
+			person->u_shiftEndBias = calendarSettings["shiftEndBias"];
+			person->intshiftEndBias = std::stoi(person->u_shiftEndBias);
+			person->u_commuteTime = calendarSettings["commuteTime"];
+			person->intcommuteTime = std::stoi(person->u_commuteTime);
+			person->calendarSettings["wordsToIgnore"].get_to(person->u_wordsToIgnore);
+			// Switch to person2
+			calendarSettings = settingsForm["Person2 Settings"];
+			// This is a horrible way to do it but it might work. With exactly 2 people
 		}
+
+		lg.b();
+		lg.d("Settings file settings.json successfully read.");
 	}
 	catch (nlohmann::detail::parse_error)
 	{
@@ -66,18 +58,21 @@ void settings::readSettings(string silent)
 	if (silent != "silent")
 	{
 		lg.b();
-
-		if (settings::ignoredWordsExist())
+		for (settings* person : people)
 		{
-			string ignoredString = settings::ignoredWordsPrint();
-			lg.b("Cal: Calendar URL: " + u_calendarURL +
-				"\nCal: Word(s) to ignore events in calendar (", u_wordsToIgnore.size(), "): " + ignoredString);
+			lg.i("INFO on person::");
+			if (person->ignoredWordsExist())
+			{
+				string ignoredString = person->ignoredWordsPrint();
+				lg.b("Cal: Calendar URL: " + person->u_calendarURL +
+					"\nCal: Word(s) to ignore events in calendar (", person->u_wordsToIgnore.size(), "): " + ignoredString);
+			}
+			else {
+				lg.b("Cal: Calendar URL: " + person->u_calendarURL);
+				lg.b("No ignored words were specified.");
+			}
+			lg.b("Cal: Commute time setting: " + person->u_commuteTime + " minutes.");
 		}
-		else {
-			lg.b("Cal: Calendar URL: " + u_calendarURL);
-			lg.b("No ignored words were specified.");
-		}
-		lg.b("Cal: Commute time setting: " + u_commuteTime + " minutes.");
 	}
 	return;
 }

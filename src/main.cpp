@@ -83,10 +83,10 @@ const string string_time_and_date(tm tstruct)
 int initAll()
 {
 	try {
+		InternetConnected();
 		settings::readSettings();
 		nowTime_secs = time(&nowTime_secs); // update to current time
-		lg.i("CalendarTrigger init");
-		InternetConnected();
+		lg.i("\n\nCalendarTrigger init");
 		initiateCal();
 	}
 	catch (string e) {
@@ -104,8 +104,8 @@ int main()
 			lg.e("Stopping, error in initAll");
 			return EXIT_FAILURE;
 		}
-		sleep(5);
+		sleep(15);
 
-		calEvent::cleanup(); // always cleanup
+		settings::calEventGroup::cleanup(); // always cleanup
 	}
 }

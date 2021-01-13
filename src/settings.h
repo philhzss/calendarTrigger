@@ -8,10 +8,12 @@ using json = nlohmann::json;
 // Stores program settings, including but not limited to settings.json stuff
 class settings
 {
-public:
+public:	
 	// Initial breakdown into separate json objects
-	static json teslaSettings, calendarSettings, generalSettings, carSettings;
+	static json teslaSettings, calendarSettings, generalSettings, carSettings, peopleSettings;
 	static std::vector<settings*> people;
+	static std::vector<settings> peopleActualInstances;
+
 
 
 	// Important stuff, Tesla official token, Tesla URL
@@ -93,7 +95,7 @@ public:
 	// Calendar Setting
 	// Enter words that will cause the program to IGNORE events containing them
 	std::vector<string> u_wordsToIgnore;
-	bool ignoredWordsExist();
+	bool ignoredWordsExist(settings* person);
 	string ignoredWordsPrint();
 
 
@@ -109,4 +111,60 @@ public:
 	// Tesla Setting
 	// CLIENT_SECRET
 	static string u_teslaClientSecret;
+
+
+	class calEvent
+	{
+	private:
+		string DTSTART, DTEND, DESCRIPTION;
+
+	public:
+		friend class settings;
+		// Function to convert string DTSTARTs into tm objects
+		void setEventParams(calEvent& event);
+		void removePastEvents();
+		void initEventTimers();
+		void updateValidEventTimers();
+
+		// Whys isnt initiateCal part of calendar.h?
+
+
+
+		// public start and end times as timeobjects
+		tm start{ 0 };
+		tm end{ 0 };
+
+		// Difference (in minutes) between program runtime and event start/end time
+		int startTimer, endTimer;
+
+		// Keep track of if action has been done for start-end on a given shift
+		bool homeDone;
+		bool workDone;
+		
+		// Takes pointer to whom to update event for
+		void updateLastTriggeredEvent(settings* person);
+
+		// Custom constructor
+		calEvent(string singleEvent_str);
+
+		// this line is probably bad:
+		calEvent()=default;
+	};
+
+	class calEventGroup
+	{
+	public:
+		std::vector<calEvent> myCalEvents;
+		std::vector<calEvent> myValidEvents;
+		calEvent* lastTriggeredEvent;
+
+		// Static methods
+		string eventTimeCheck(int wakeTimer, int triggerTimer);
+
+		// Cleanup at end of program
+		static void cleanup();
+	};
+	
+	calEvent event;
+	calEventGroup allEvents;
 };

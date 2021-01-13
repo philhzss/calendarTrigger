@@ -7,12 +7,9 @@ static Log lg("Settings", Log::LogLevel::Debug);
 
 
 
-// Settings definitions
-json settings::calendarSettings;
-settings person1;
-settings person2;
-
+json settings::peopleSettings;
 std::vector<settings*> settings::people;
+std::vector<settings> settings::peopleActualInstances;
 
 
 
@@ -22,26 +19,47 @@ void settings::readSettings(string silent)
 	try {
 		std::ifstream stream("settings.json");
 		stream >> settingsForm;
+		peopleSettings = settingsForm["people"];
 
-		// Initially do person1
-		calendarSettings = settingsForm["Person1 Settings"];
-		for (settings* person : people)
+		// Figure out how many people we have
+		int peopleFound = 0;
+		for (json person : peopleSettings)
 		{
-			person->u_calendarURL = calendarSettings["calendarURL"];
-			person->u_shiftStartBias = calendarSettings["shiftStartBias"];
-			person->intshiftStartBias = std::stoi(person->u_shiftStartBias);
-			person->u_shiftEndBias = calendarSettings["shiftEndBias"];
-			person->intshiftEndBias = std::stoi(person->u_shiftEndBias);
-			person->u_commuteTime = calendarSettings["commuteTime"];
-			person->intcommuteTime = std::stoi(person->u_commuteTime);
-			person->calendarSettings["wordsToIgnore"].get_to(person->u_wordsToIgnore);
-			// Switch to person2
-			calendarSettings = settingsForm["Person2 Settings"];
-			// This is a horrible way to do it but it might work. With exactly 2 people
+			peopleFound++;
 		}
+
+		lg.i("There are ", peopleFound, " people to initialize from settings.json.");
+
+
+		json activeJsonPerson;
+
+		for (int personNumJson = 0; personNumJson < peopleFound; personNumJson++)
+		{
+			lg.d("Processing person #", personNumJson + 1, ".");
+			settings activePerson;
+			activeJsonPerson = peopleSettings["person" + std::to_string(personNumJson + 1)];
+			activePerson.u_calendarURL = activeJsonPerson["calendarURL"];
+			activePerson.u_shiftStartBias = activeJsonPerson["shiftStartBias"];
+			activePerson.intshiftStartBias = std::stoi(activePerson.u_shiftStartBias);
+			activePerson.u_shiftEndBias = activeJsonPerson["shiftEndBias"];
+			activePerson.intshiftEndBias = std::stoi(activePerson.u_shiftEndBias);
+			activePerson.u_commuteTime = activeJsonPerson["commuteTime"];
+			activePerson.intcommuteTime = std::stoi(activePerson.u_commuteTime);
+			activeJsonPerson["wordsToIgnore"].get_to(activePerson.u_wordsToIgnore);
+			settings::peopleActualInstances.push_back(activePerson);
+
+		}
+
+		
+		for (settings &peopleInstances : settings::peopleActualInstances)
+		{
+			settings::people.push_back(&peopleInstances);
+		}
+
 
 		lg.b();
 		lg.d("Settings file settings.json successfully read.");
+		lg.i(settings::people.size(), " people have been initialized.");
 	}
 	catch (nlohmann::detail::parse_error)
 	{
@@ -61,7 +79,11 @@ void settings::readSettings(string silent)
 		for (settings* person : people)
 		{
 			lg.i("INFO on person::");
-			if (person->ignoredWordsExist())
+			lg.i("commute time: ", person->intcommuteTime);
+			/*cout << person->u_wordsToIgnore[0] << endl;
+			cout << person->u_wordsToIgnore[1] << endl;*/
+
+			if (person->ignoredWordsExist(person))
 			{
 				string ignoredString = person->ignoredWordsPrint();
 				lg.b("Cal: Calendar URL: " + person->u_calendarURL +
@@ -77,9 +99,9 @@ void settings::readSettings(string silent)
 	return;
 }
 
-bool settings::ignoredWordsExist()
+bool settings::ignoredWordsExist(settings* person)
 {
-	return (u_wordsToIgnore.empty()) ? false : true;
+	return (person->u_wordsToIgnore.empty()) ? false : true;
 }
 
 string settings::ignoredWordsPrint()
@@ -94,4 +116,3 @@ string settings::ignoredWordsPrint()
 	}
 	return stream.str();
 }
-

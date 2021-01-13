@@ -1,9 +1,22 @@
 {
-  "Calendar Settings": {
-    "calendarURL": "link to calendar ics",
-    "shiftStartBias": "0",
-    "shiftEndBias": "-30",
-    "commuteTime": "30",
-    "wordsToIgnore": [ "Leave", "Spare" ]
+  "people": {
+    "person1": [
+      {
+        "calendarURL": "link to calendar ics",
+        "shiftStartBias": "0",
+        "shiftEndBias": "0",
+        "commuteTime": "45",
+        "wordsToIgnore": []
+      }
+    ],
+    "person2": [
+      {
+        "calendarURL": "link to calendar ics",
+        "shiftStartBias": "0",
+        "shiftEndBias": "-30",
+        "commuteTime": "30",
+        "wordsToIgnore": [ "Leave", "Spare" ]
+      }
+    ]
   }
 }

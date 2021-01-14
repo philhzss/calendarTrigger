@@ -21,6 +21,7 @@ void settings::readSettings(string silent)
 		stream >> settingsForm;
 		peopleSettings = settingsForm["people"];
 
+
 		// Figure out how many people we have
 		int peopleFound = 0;
 		for (json person : peopleSettings)
@@ -35,10 +36,10 @@ void settings::readSettings(string silent)
 
 		for (int personNumJson = 0; personNumJson < peopleFound; personNumJson++)
 		{
-			lg.d("Processing person #", personNumJson + 1, ".");
 			settings activePerson;
 			activeJsonPerson = peopleSettings["person" + std::to_string(personNumJson + 1)];
 			activePerson.u_calendarURL = activeJsonPerson["calendarURL"];
+			activePerson.u_name = activeJsonPerson["name"];
 			activePerson.u_shiftStartBias = activeJsonPerson["shiftStartBias"];
 			activePerson.intshiftStartBias = std::stoi(activePerson.u_shiftStartBias);
 			activePerson.u_shiftEndBias = activeJsonPerson["shiftEndBias"];
@@ -46,8 +47,8 @@ void settings::readSettings(string silent)
 			activePerson.u_commuteTime = activeJsonPerson["commuteTime"];
 			activePerson.intcommuteTime = std::stoi(activePerson.u_commuteTime);
 			activeJsonPerson["wordsToIgnore"].get_to(activePerson.u_wordsToIgnore);
+			lg.d("Processed ", activePerson.u_name, ", person #", personNumJson + 1, "/", peopleFound, ".");
 			settings::peopleActualInstances.push_back(activePerson);
-
 		}
 
 		
@@ -57,9 +58,10 @@ void settings::readSettings(string silent)
 		}
 
 
+		lg.i(settings::people.size(), " people have been initialized.");
 		lg.b();
 		lg.d("Settings file settings.json successfully read.");
-		lg.i(settings::people.size(), " people have been initialized.");
+
 	}
 	catch (nlohmann::detail::parse_error)
 	{
@@ -75,14 +77,10 @@ void settings::readSettings(string silent)
 	// Print this unless reading settings silently
 	if (silent != "silent")
 	{
-		lg.b();
 		for (settings* person : people)
 		{
-			lg.i("INFO on person::");
-			lg.i("commute time: ", person->intcommuteTime);
-			/*cout << person->u_wordsToIgnore[0] << endl;
-			cout << person->u_wordsToIgnore[1] << endl;*/
-
+			lg.b();
+			lg.i("Info for person: ", person->u_name);
 			if (person->ignoredWordsExist(person))
 			{
 				string ignoredString = person->ignoredWordsPrint();

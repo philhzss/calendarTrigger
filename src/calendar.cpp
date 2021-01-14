@@ -10,19 +10,18 @@ static Log lg("Calendar", Log::LogLevel::Debug);
 
 
 // Get long string of raw calendar data from URL
-string GetCalRawData() {
-	for (settings* person : settings::people)
+string GetCalRawData(settings* person) {
+
+	try
 	{
-		try
-		{
-			string rawCalContent = curl_GET(person->u_calendarURL);
-			return rawCalContent;
-		}
-		catch (string e)
-		{
-			throw "initiateCal error: " + e + "\nCheck calendar URL??? Internet connection?";
-		};
+		string rawCalContent = curl_GET(person->u_calendarURL);
+		return rawCalContent;
 	}
+	catch (string e)
+	{
+		throw "initiateCal error: " + e + "\nCheck calendar URL??? Internet connection?";
+	};
+
 }
 
 // Take the entire ICS file string and convert it into vector of strings with events
@@ -97,7 +96,7 @@ void initiateCal()
 {
 	for (settings* person : settings::people)
 	{
-		string calRawData = GetCalRawData();
+		string calRawData = GetCalRawData(person);
 
 		// Cut out the "header" data from the raw cal string
 		int	calHeadEndPos = calRawData.find("END:VTIMEZONE");
@@ -151,7 +150,7 @@ void initiateCal()
 
 
 		// The custom myCalEvents vector is initialized
-		lg.i("There are " + std::to_string(person->allEvents.myCalEvents.size()) + " events in the database, filtered from " + std::to_string(calEventsVector.size()) + " events. This includes past events, will be filtered later.");
+		lg.i("There are " + std::to_string(person->allEvents.myCalEvents.size()) + " events in ", person->u_name, "'s database, filtered from " + std::to_string(calEventsVector.size()) + " events. This includes past events, will be filtered later.");
 
 		// Parse myCalEvents items to get their event start-end times set as datetime objects
 		for (settings::calEvent& event : person->allEvents.myCalEvents)
@@ -160,10 +159,10 @@ void initiateCal()
 		}
 
 		// Calculate start & end timers for each event and store them in the event instance
-		person->event.initEventTimers();
+		person->event.initEventTimers(person);
 
 		// Get rid of all events in the past
-		person->event.removePastEvents();
+		person->event.removePastEvents(person);
 	}
 }
 
@@ -201,107 +200,102 @@ void settings::calEvent::setEventParams(calEvent& event)
 	event.workDone = false;
 }
 
-void settings::calEvent::initEventTimers()
+void settings::calEvent::initEventTimers(settings* person)
 {
-	for (settings* person : settings::people)
+	for (calEvent& event : person->allEvents.myCalEvents)
 	{
-		for (calEvent& event : person->allEvents.myCalEvents)
-		{
-			/*lg.p
-			(
-				"::BEFORE modifications by eventTimeCheck::"
-				"\nYear=" + (std::to_string(event.end.tm_year)) +
-				"\nMonth=" + (std::to_string(event.end.tm_mon)) +
-				"\nDay=" + (std::to_string(event.end.tm_mday)) +
-				"\nTime=" + (std::to_string(event.end.tm_hour)) + ":" + (std::to_string(event.end.tm_min)) + "\n"
-			);*/
-			// Make a temporary tm struct to not let the mktime function overwrite my event struct
-			tm tempEventStart = event.start;
-			tm tempEventEnd = event.end;
-			// Using the temp tm structs, convert tm to time_t epoch seconds
-			time_t startTime_secs = mktime(&tempEventStart) - timezone;
-			time_t endTime_secs = mktime(&tempEventEnd) - timezone;
-			lg.p("Now time in secs: " + std::to_string(nowTime_secs));
-			lg.p("Start time in secs: " + std::to_string(startTime_secs));
-			lg.p("End time in secs: " + std::to_string(endTime_secs));
-			// Calculate diff between now and event start/stop times, store value in minutes in object timers
-			event.startTimer = (difftime(startTime_secs, nowTime_secs)) / 60;
-			event.endTimer = (difftime(endTime_secs, nowTime_secs)) / 60;
-			lg.p
-			(
-				"::AFTER modifications by initEventTimers, based on shift END TIME::"
-				"\nYear=" + (std::to_string(event.end.tm_year)) +
-				"\nMonth=" + (std::to_string(event.end.tm_mon)) +
-				"\nDay=" + (std::to_string(event.end.tm_mday)) +
-				"\nTime=" + (std::to_string(event.end.tm_hour)) + ":" + (std::to_string(event.end.tm_min)) +
-				"\nStartTimer=" + (std::to_string(event.startTimer)) +
-				"\nEndTimer=" + (std::to_string(event.endTimer)) + "\n"
-			);
-		}
+		/*lg.p
+		(
+			"::BEFORE modifications by eventTimeCheck::"
+			"\nYear=" + (std::to_string(event.end.tm_year)) +
+			"\nMonth=" + (std::to_string(event.end.tm_mon)) +
+			"\nDay=" + (std::to_string(event.end.tm_mday)) +
+			"\nTime=" + (std::to_string(event.end.tm_hour)) + ":" + (std::to_string(event.end.tm_min)) + "\n"
+		);*/
+		// Make a temporary tm struct to not let the mktime function overwrite my event struct
+		tm tempEventStart = event.start;
+		tm tempEventEnd = event.end;
+		// Using the temp tm structs, convert tm to time_t epoch seconds
+		time_t startTime_secs = mktime(&tempEventStart) - timezone;
+		time_t endTime_secs = mktime(&tempEventEnd) - timezone;
+		lg.p("Now time in secs: " + std::to_string(nowTime_secs));
+		lg.p("Start time in secs: " + std::to_string(startTime_secs));
+		lg.p("End time in secs: " + std::to_string(endTime_secs));
+		// Calculate diff between now and event start/stop times, store value in minutes in object timers
+		event.startTimer = (difftime(startTime_secs, nowTime_secs)) / 60;
+		event.endTimer = (difftime(endTime_secs, nowTime_secs)) / 60;
+		lg.p
+		(
+			"::AFTER modifications by initEventTimers, based on shift END TIME::"
+			"\nYear=" + (std::to_string(event.end.tm_year)) +
+			"\nMonth=" + (std::to_string(event.end.tm_mon)) +
+			"\nDay=" + (std::to_string(event.end.tm_mday)) +
+			"\nTime=" + (std::to_string(event.end.tm_hour)) + ":" + (std::to_string(event.end.tm_min)) +
+			"\nStartTimer=" + (std::to_string(event.startTimer)) +
+			"\nEndTimer=" + (std::to_string(event.endTimer)) + "\n"
+		);
 	}
 }
 
-void settings::calEvent::updateValidEventTimers()
+void settings::calEvent::updateValidEventTimers(settings* person)
 {
-	for (settings* person : settings::people)
+
+	for (calEvent& event : person->allEvents.myValidEvents) // applies to valid (non-past) events only
 	{
-		for (calEvent& event : person->allEvents.myValidEvents) // applies to valid (non-past) events only
-		{
-			// Make a temporary tm struct to not let the mktime function overwrite my event struct
-			tm tempEventStart = event.start;
-			tm tempEventEnd = event.end;
+		// Make a temporary tm struct to not let the mktime function overwrite my event struct
+		tm tempEventStart = event.start;
+		tm tempEventEnd = event.end;
 
-			// Using the temp tm structs, convert tm to time_t epoch seconds
-			time_t startTime_secs = mktime(&tempEventStart) - timezone;
-			time_t endTime_secs = mktime(&tempEventEnd) - timezone;
+		// Using the temp tm structs, convert tm to time_t epoch seconds
+		time_t startTime_secs = mktime(&tempEventStart) - timezone;
+		time_t endTime_secs = mktime(&tempEventEnd) - timezone;
 
-			// Calculate diff between now and event start/stop times, store value in minutes in object timers
-			event.startTimer = (difftime(startTime_secs, nowTime_secs)) / 60;
-			event.endTimer = (difftime(endTime_secs, nowTime_secs)) / 60;
-		}
+		// Calculate diff between now and event start/stop times, store value in minutes in object timers
+		event.startTimer = (difftime(startTime_secs, nowTime_secs)) / 60;
+		event.endTimer = (difftime(endTime_secs, nowTime_secs)) / 60;
 	}
+
 }
 
-void settings::calEvent::removePastEvents()
+void settings::calEvent::removePastEvents(settings* person)
 {
-	for (settings* person : settings::people)
+
+	int origSize = person->allEvents.myCalEvents.size();
+	for (calEvent& event : person->allEvents.myCalEvents)
 	{
-		int origSize = person->allEvents.myCalEvents.size();
-		for (calEvent& event : person->allEvents.myCalEvents)
+
+		if ((event.startTimer > 0) || (event.endTimer > 0))
 		{
-
-			if ((event.startTimer > 0) || (event.endTimer > 0))
-			{
-				person->allEvents.myValidEvents.push_back(event);
-			}
-
+			person->allEvents.myValidEvents.push_back(event);
 		}
-		int newSize = person->allEvents.myValidEvents.size();
-		lg.i("Past events filtered, there are now " + std::to_string(newSize) + " events in the database, filtered from " + std::to_string(origSize) + " events.");
 
-		// Only print this if level is higher than programming as it's a lot of lines
-		if (lg.ReadLevel() >= Log::Programming) {
-			lg.d("All events INCLUDING past:");
-			for (calEvent event : person->allEvents.myCalEvents)
-			{
-				lg.d("Start");
-				lg.d(event.DTSTART);
-				lg.d("End");
-				lg.d(event.DTEND);
-				lg.b();
-			}
-			lg.b("\n");
-			lg.d("All events EXCLUDINTG past (valid only):");
-			for (calEvent event : person->allEvents.myValidEvents)
-			{
-				lg.d("Start");
-				lg.d(event.DTSTART);
-				lg.d("End");
-				lg.d(event.DTEND);
-				lg.b();
-			}
+	}
+	int newSize = person->allEvents.myValidEvents.size();
+	lg.i("Past events filtered, there are now " + std::to_string(newSize) + " events in the database, filtered from " + std::to_string(origSize) + " events.");
+
+	// Only print this if level is higher than programming as it's a lot of lines
+	if (lg.ReadLevel() >= Log::Programming) {
+		lg.d("All events INCLUDING past:");
+		for (calEvent event : person->allEvents.myCalEvents)
+		{
+			lg.d("Start");
+			lg.d(event.DTSTART);
+			lg.d("End");
+			lg.d(event.DTEND);
+			lg.b();
+		}
+		lg.b("\n");
+		lg.d("All events EXCLUDINTG past (valid only):");
+		for (calEvent event : person->allEvents.myValidEvents)
+		{
+			lg.d("Start");
+			lg.d(event.DTSTART);
+			lg.d("End");
+			lg.d(event.DTEND);
+			lg.b();
 		}
 	}
+
 }
 
 // Check if any start-end event is valid, and return appropriate string based on timers
@@ -409,9 +403,11 @@ void settings::calEvent::updateLastTriggeredEvent(settings* person)
 
 void settings::calEventGroup::cleanup()
 {
-	for (settings* person : settings::people)
+	/*for (settings* person : settings::people)
 	{
 		person->allEvents.myCalEvents.clear();
 		person->allEvents.myValidEvents.clear();
-	}
+	}*/
+	settings::people.clear();
+	settings::peopleActualInstances.clear();
 }

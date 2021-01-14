@@ -78,6 +78,9 @@ public:
 	// URL to Calendar file for event triggers
 	string u_calendarURL;
 	// Calendar Setting
+	// Calendar (person) name
+	string u_name;
+	// Calendar Setting
 	// (Minutes) If you leave home to target arriving at work earlier than event start, enter a NEGATIVE number.
 	// Ex: Want to arrive at work 15 mins before event start? Enter -15. EXCLUDES commute time. 
 	// The car will be ready at (commuteTime - shiftStartBias) mins before event start.
@@ -122,9 +125,10 @@ public:
 		friend class settings;
 		// Function to convert string DTSTARTs into tm objects
 		void setEventParams(calEvent& event);
-		void removePastEvents();
-		void initEventTimers();
-		void updateValidEventTimers();
+		void removePastEvents(settings* person);
+		void initEventTimers(settings* person);
+		// Must be run of every iteration of any "stuck loop" or the start/end timers wont be updated
+		void updateValidEventTimers(settings* person);
 
 		// Whys isnt initiateCal part of calendar.h?
 

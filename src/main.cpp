@@ -86,7 +86,7 @@ int initAll()
 		InternetConnected();
 		settings::readSettings();
 		nowTime_secs = time(&nowTime_secs); // update to current time
-		lg.i("\n\nCalendarTrigger init");
+		lg.b();
 		initiateCal();
 	}
 	catch (string e) {
@@ -98,14 +98,29 @@ int initAll()
 
 int main()
 {
+	int mainLoopCounter = 1;
 	while (true)
 	{
+		lg.b("\n\n>>>>>>>------------------------------PROGRAM STARTS HERE----------------------------<<<<<<<\n");
+		nowTime_secs = time(&nowTime_secs); // update to current time
+		lg.i("Runtime date-time (this loop): " + return_current_time_and_date() + " LOCAL\n");
+		lg.d("Loop run number since program start: ", mainLoopCounter);
+
 		if (initAll() != 0) {
 			lg.e("Stopping, error in initAll");
 			return EXIT_FAILURE;
 		}
-		sleep(15);
+		else {
 
+			lg.i("PROGRAM CODE HERE");
+
+		}
+
+		lg.b("\n<<<<<<<---------------------------PROGRAM TERMINATES HERE--------------------------->>>>>>>\n");
 		settings::calEventGroup::cleanup(); // always cleanup
+
+		mainLoopCounter++;
+		lg.b("Waiting for 30 seconds... (now -> ", return_current_time_and_date(), " LOCAL)\n\n\n\n\n\n\n\n\n");
+		sleep(30);
 	}
 }

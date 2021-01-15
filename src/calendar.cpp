@@ -6,7 +6,7 @@
 using std::string;
 
 static Log lg("Calendar", Log::LogLevel::Debug);
-
+settings::calEvent* settings::calEventGroup::lastTriggeredEvent;
 
 
 // Get long string of raw calendar data from URL
@@ -19,7 +19,7 @@ string GetCalRawData(settings* person) {
 	}
 	catch (string e)
 	{
-		throw "initiateCal error: " + e + "\nCheck calendar URL??? Internet connection?";
+		throw "initiateCal/GetCalRawData error: " + e + "\nCheck calendar URL??? Internet connection?";
 	};
 
 }
@@ -90,6 +90,40 @@ settings::calEvent::calEvent(string singleEvent_str)
 	cout << DESCRIPTION << endl;*/
 }
 
+void settings::calEvent::logDetail(int minsTrigger, string action)
+{
+	if (action == "startOn")
+	{
+		lg.d("Triggered by a timer value of (timer-minsBefore): " + std::to_string(startTimer - minsTrigger));
+
+	}
+	else if (action == "startOff")
+	{
+		lg.d("Triggered by a timer value of (timer+minsAfter): " + std::to_string(startTimer + minsTrigger));
+	}
+	else if (action == "endOn")
+	{
+		lg.d("Triggered by a timer value of (timer-minsBefore): " + std::to_string(endTimer - minsTrigger));
+
+	}
+	else if (action == "endOff")
+	{
+		lg.d("Triggered by a timer value of (timer+minsAfter): " + std::to_string(endTimer + minsTrigger));
+	}
+
+	lg.p
+	(
+		"::Trigger debug::"
+		"\nYear=" + (std::to_string(end.tm_year)) +
+		"\nMonth=" + (std::to_string(end.tm_mon)) +
+		"\nDay=" + (std::to_string(end.tm_mday)) +
+		"\nTime=" + (std::to_string(end.tm_hour)) + ":" + (std::to_string(end.tm_min)) +
+		"\nStartTimer=" + (std::to_string(startTimer)) +
+		"\nEndTimer=" + (std::to_string(endTimer)) + "\n"
+	);
+	lg.i("Shift starting at " + string_time_and_date(start) + " lights should be turned ", action);
+	lg.i("Current time: " + return_current_time_and_date() + " LOCAL");
+}
 
 // Function to be called from main.cpp, creates myCalEvents vector containing all calEvent objects from scratch
 void initiateCal()
@@ -196,8 +230,10 @@ void settings::calEvent::setEventParams(calEvent& event)
 	// lg.p("Converting DTSTART, raw string is: " + DTSTART);
 	event.start = convertToTm(event.DTSTART, event.start);
 	event.end = convertToTm(event.DTEND, event.end);
-	event.homeDone = false;
-	event.workDone = false;
+	event.startOnDone = false;
+	event.startOffDone = false;
+	event.endOnDone = false;
+	event.endOffDone = false;
 }
 
 void settings::calEvent::initEventTimers(settings* person)
@@ -237,24 +273,26 @@ void settings::calEvent::initEventTimers(settings* person)
 	}
 }
 
-void settings::calEvent::updateValidEventTimers(settings* person)
+void settings::calEvent::updateValidEventTimers()
 {
-
-	for (calEvent& event : person->allEvents.myValidEvents) // applies to valid (non-past) events only
+	nowTime_secs;
+	for (settings* person : settings::people)
 	{
-		// Make a temporary tm struct to not let the mktime function overwrite my event struct
-		tm tempEventStart = event.start;
-		tm tempEventEnd = event.end;
+		for (calEvent& event : person->allEvents.myValidEvents) // applies to valid (non-past) events only
+		{
+			// Make a temporary tm struct to not let the mktime function overwrite my event struct
+			tm tempEventStart = event.start;
+			tm tempEventEnd = event.end;
 
-		// Using the temp tm structs, convert tm to time_t epoch seconds
-		time_t startTime_secs = mktime(&tempEventStart) - timezone;
-		time_t endTime_secs = mktime(&tempEventEnd) - timezone;
+			// Using the temp tm structs, convert tm to time_t epoch seconds
+			time_t startTime_secs = mktime(&tempEventStart) - timezone;
+			time_t endTime_secs = mktime(&tempEventEnd) - timezone;
 
-		// Calculate diff between now and event start/stop times, store value in minutes in object timers
-		event.startTimer = (difftime(startTime_secs, nowTime_secs)) / 60;
-		event.endTimer = (difftime(endTime_secs, nowTime_secs)) / 60;
+			// Calculate diff between now and event start/stop times, store value in minutes in object timers
+			event.startTimer = (difftime(startTime_secs, nowTime_secs)) / 60;
+			event.endTimer = (difftime(endTime_secs, nowTime_secs)) / 60;
+		}
 	}
-
 }
 
 void settings::calEvent::removePastEvents(settings* person)
@@ -263,8 +301,9 @@ void settings::calEvent::removePastEvents(settings* person)
 	int origSize = person->allEvents.myCalEvents.size();
 	for (calEvent& event : person->allEvents.myCalEvents)
 	{
-
-		if ((event.startTimer > 0) || (event.endTimer > 0))
+		/* + 120 to not delete event as soon as it's passed, to be able to turn light off
+		* This gives us 120 mins to drive back home, should be enough in 99% of cases */
+		if ((event.startTimer + 120 > 0) || (event.endTimer + 120 > 0))
 		{
 			person->allEvents.myValidEvents.push_back(event);
 		}
@@ -299,106 +338,131 @@ void settings::calEvent::removePastEvents(settings* person)
 }
 
 // Check if any start-end event is valid, and return appropriate string based on timers
-string settings::calEventGroup::eventTimeCheck(int intwakeTimer, int inttriggerTimer)
+string settings::calEventGroup::eventTimeCheck(int minsBefore, int minsAfter)
 {
 	for (settings* person : settings::people)
 	{
-		// Verify if any event timer is coming up soon (within the defined timer parameter) and return location-validity
+		// Verify if any event timer is coming up soon (within the defined timer parameter) return action
 		for (calEvent& event : person->allEvents.myValidEvents)
 		{
-			// If event start time is less (sooner) than event trigger time
-			// startTimer - (commute + start bias)
-			if (event.startTimer > 0 && (event.startTimer - person->intcommuteTime + person->intshiftStartBias
-				<= inttriggerTimer))
-			{
-				lg.d("Triggered by a timer value of: " + std::to_string(event.startTimer));
-				lg.p
-				(
-					"::Trigger debug (event start)::"
-					"\nYear=" + (std::to_string(event.end.tm_year)) +
-					"\nMonth=" + (std::to_string(event.end.tm_mon)) +
-					"\nDay=" + (std::to_string(event.end.tm_mday)) +
-					"\nTime=" + (std::to_string(event.end.tm_hour)) + ":" + (std::to_string(event.end.tm_min)) +
-					"\nStartTimer=" + (std::to_string(event.startTimer)) +
-					"\nEndTimer=" + (std::to_string(event.endTimer)) + "\n"
-				);
-				lg.i("Shift starting at " + string_time_and_date(event.start) + " is valid from home.");
-				lg.i("Shift was determined valid and triggered at: " + return_current_time_and_date() + " LOCAL");
+			/* For the operations, the "on" ops will be before the start or end timer (the timer will be >0)
+			For the "off" ops, since they occur after the event timer has past, we need to allow negative values
+			We must stop searching for the trigger after a certain time otherwise we'll stay stuck in the loop
+			with negative end/start timers forever. Using the minsAfter - a few extra mins should work */
+			int operationShiftStart = event.startTimer - person->intcommuteTime + person->intshiftStartBias;
+			int operationShiftEnd = event.endTimer + person->intcommuteTime + person->intshiftEndBias;
+			bool operationStartOn = operationShiftStart <= minsBefore && operationShiftStart > 0;
+			bool operationStartOff = operationShiftStart <= -minsAfter && operationShiftStart > -minsAfter - 4;
+			bool operationEndOn = operationShiftEnd <= minsBefore && operationShiftEnd > 0;
+			bool operationEndOff = operationShiftEnd <= -minsAfter && operationShiftEnd > -minsAfter - 4;
 
-				if (!event.homeDone) // make sure this event hasn't be triggered before for home
+			if (operationStartOn)
+			{
+				if (!event.startOnDone) // make sure this event hasn't be triggered before
 				{
-					// Return home since this shift is triggered and its "going to work"
+					lg.p("Operation event.startTimer - person->intcommuteTime + person->intshiftStartBias = ",
+						event.startTimer - person->intcommuteTime + person->intshiftStartBias);
+					event.logDetail(minsBefore, "startOn");
 					event.updateLastTriggeredEvent(person);
-					return "home";
+					lg.i("Event triggered for ", person->u_name);
+					return "startOn";
 				}
 				else
 				{
-					lg.i("EVENT HAD ALREADY TRIGGERED FOR HOME, ignoring.");
+					lg.i("EVENT HAD ALREADY TRIGGERED for this turnOn, ignoring.");
 					return "duplicate";
 				}
 			}
-			else if (event.endTimer > 0 && (event.endTimer + person->intshiftEndBias <= inttriggerTimer))
+			else if (operationStartOff)
 			{
-				lg.d("Triggered by a timer value of: " + std::to_string(event.endTimer));
-				lg.p
-				(
-					"::Trigger debug (event end)::"
-					"\nYear=" + (std::to_string(event.end.tm_year)) +
-					"\nMonth=" + (std::to_string(event.end.tm_mon)) +
-					"\nDay=" + (std::to_string(event.end.tm_mday)) +
-					"\nTime=" + (std::to_string(event.end.tm_hour)) + ":" + (std::to_string(event.end.tm_min)) +
-					"\nStartTimer=" + (std::to_string(event.startTimer)) +
-					"\nEndTimer=" + (std::to_string(event.endTimer)) + "\n"
-				);
-				lg.i("Shift starting at " + string_time_and_date(event.end) + " is valid from work.");
-				lg.i("Shift was determined valid and triggered at: " + return_current_time_and_date() + " LOCAL\n");
-
-				if (!event.workDone) // make sure this event hasn't be triggered before for work
+				if (!event.startOffDone) // make sure this event hasn't be triggered before
 				{
-					// Return work since this shift is triggered and its "coming back from to work"
+					lg.p("Operation event.startTimer - person->intcommuteTime + person->intshiftStartBias = ",
+						event.startTimer - person->intcommuteTime + person->intshiftStartBias);
+					event.logDetail(minsAfter, "startOff");
 					event.updateLastTriggeredEvent(person);
-					return "work";
+					lg.i("Event triggered for ", person->u_name);
+					return "startOff";
 				}
 				else
 				{
-					lg.i("EVENT HAD ALREADY TRIGGERED FOR WORK, ignoring.");
+					lg.i("EVENT HAD ALREADY TRIGGERED for this turnOff, ignoring.");
 					return "duplicate";
 				}
 			}
-			// Make sure to ignore a negative startTimer, as it will be negative during an entire work shift
-			else if (event.startTimer > 0 && event.startTimer <= intwakeTimer || event.endTimer <= intwakeTimer && event.endTimer > 0)
+			else if (operationEndOn)
 			{
-				lg.d("Triggered by a timer value of: " + std::to_string(event.startTimer) + " for start, or: " + std::to_string(event.endTimer) + " for end.");
-				lg.p
-				(
-					"::Trigger debug (wakeTimer)::"
-					"\nYear=" + (std::to_string(event.end.tm_year)) +
-					"\nMonth=" + (std::to_string(event.end.tm_mon)) +
-					"\nDay=" + (std::to_string(event.end.tm_mday)) +
-					"\nTime=" + (std::to_string(event.end.tm_hour)) + ":" + (std::to_string(event.end.tm_min)) +
-					"\nStartTimer=" + (std::to_string(event.startTimer)) +
-					"\nEndTimer=" + (std::to_string(event.endTimer)) + "\n"
-				);
-				// Notification for wake action now in main.cpp
-				lg.i("Wake event triggered at: " + return_current_time_and_date() + " LOCAL\n");
-				// Return wake since this shift is upcoming but not close enough to start the car yet
-				return "wake";
+				if (!event.endOnDone) // make sure this event hasn't be triggered before
+				{
+					lg.p("Operation event.startTimer - person->intcommuteTime + person->intshiftStartBias = ",
+						event.endTimer + person->intshiftEndBias);
+					event.logDetail(minsBefore, "endOn");
+					event.updateLastTriggeredEvent(person);
+					lg.i("Event triggered for ", person->u_name);
+					return "endOn";
+				}
+				else
+				{
+					lg.i("EVENT HAD ALREADY TRIGGERED for this turnOn, ignoring.");
+					return "duplicate";
+				}
+			}
+			else if (operationEndOff)
+			{
+				if (!event.endOffDone) // make sure this event hasn't be triggered before
+				{
+					lg.p("Operation event.startTimer - person->intcommuteTime + person->intshiftStartBias = ",
+						event.endTimer + person->intshiftEndBias);
+					event.logDetail(minsAfter, "endOff");
+					event.updateLastTriggeredEvent(person);
+					lg.i("Event triggered for ", person->u_name);
+					return "endOff";
+				}
+				else
+				{
+					lg.i("EVENT HAD ALREADY TRIGGERED for this turnOff, ignoring.");
+					return "duplicate";
+				}
 			}
 			else
 			{
-				lg.p("No match for start: " + std::to_string(event.startTimer) + " NOR for end: " + std::to_string(event.endTimer) + ".");
+				lg.p("No match for startOn: ", event.startTimer - minsBefore,
+					"\nNo match for startOff: ", event.startTimer + minsAfter,
+					"\nNo match for endOn: ", event.endTimer - minsBefore,
+					"\nNo match for endOff: ", event.endTimer + minsAfter);
 			}
 		}
-		// If we're here, no event matched any parameter
-		lg.d("No matching event for wakeTimer: ", intwakeTimer, "mins, triggerTimer: ", inttriggerTimer, "mins.");
-		return "";
+		lg.d(person->u_name, "'s schedule has been checked, nothing found");
 	}
+	// If we're here, no event matched any parameter
+	lg.d("Returning nothing, no matching events for anyone at ", return_current_time_and_date());
+	return "";
 }
 
 void settings::calEvent::updateLastTriggeredEvent(settings* person)
 {
 	lg.d("lastTriggeredEvent has been updated");
-	person->allEvents.lastTriggeredEvent = this;
+	settings::calEventGroup::lastTriggeredEvent = this;
+}
+
+void settings::calEventGroup::confirmDuplicateProtect(string type)
+{
+	if (type == "startOn")
+	{
+		settings::calEventGroup::lastTriggeredEvent->startOnDone = true;
+	}
+	if (type == "startOff")
+	{
+		settings::calEventGroup::lastTriggeredEvent->startOffDone = true;
+	}
+	if (type == "endOn")
+	{
+		settings::calEventGroup::lastTriggeredEvent->endOnDone = true;
+	}
+	if (type == "endOff")
+	{
+		settings::calEventGroup::lastTriggeredEvent->endOffDone = true;
+	}
 }
 
 void settings::calEventGroup::cleanup()

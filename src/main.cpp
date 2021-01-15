@@ -80,7 +80,7 @@ const string string_time_and_date(tm tstruct)
 	return buf;
 }
 
-int initAll()
+void initAll()
 {
 	try {
 		InternetConnected();
@@ -91,9 +91,87 @@ int initAll()
 	}
 	catch (string e) {
 		lg.e("Error: ", e);
-		return 1;
+		throw e;
 	}
-	return 0;
+	return;
+}
+
+string garageLightCommand(string command)
+{
+	string response;
+	bool response_code_ok;
+	do
+	{
+		string fullUrl = settings::u_lightURL; // dev API for now
+		const char* const url_to_use = fullUrl.c_str();
+		// lg.d("teslaPOSTing to this URL: " + fullUrl); // disabled for clutter
+
+		CURL* curl;
+		CURLcode res;
+		// Buffer to store result temporarily:
+		string readBuffer;
+		long response_code;
+
+		/* In windows, this will init the winsock stuff */
+		curl_global_init(CURL_GLOBAL_ALL);
+
+		/* get a curl handle */
+		curl = curl_easy_init();
+
+		if (curl) {
+			/* First set the URL that is about to receive our POST. This URL can
+			   just as well be a https:// URL if that is what should receive the
+			   data. */
+			curl_easy_setopt(curl, CURLOPT_URL, url_to_use);
+			/* Now specify the POST data */
+			struct curl_slist* headers = nullptr;
+			//headers = curl_slist_append(headers, "Content-Type: application/json");
+
+
+
+
+			// Serialize the package json to string
+			string data = "command=" + command;
+			lg.i(data);
+			curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+			curl_easy_setopt(curl, CURLOPT_POSTFIELDS, data.c_str());
+			curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, data.length());
+			curl_easy_setopt(curl, CURLOPT_POST, 1);
+			curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+			curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
+
+			/* Perform the request, res will get the return code */
+			res = curl_easy_perform(curl);
+			/* Check for errors */
+			if (res != CURLE_OK)
+				fprintf(stderr, "curl_easy_perform() failed: %s\n",
+					curl_easy_strerror(res));
+			if (res == CURLE_OK) {
+				curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);
+				lg.i(response_code, "=response code for ", fullUrl);
+				lg.p("readBuffer (before jsonify): " + readBuffer);
+
+				if (response_code != 200)
+				{
+					lg.e("Abnormal server response (", response_code, ") for ", fullUrl);
+					lg.d("readBuffer for incorrect: " + readBuffer);
+					response_code_ok = false;
+					lg.i("Waiting 30 secs and retrying");
+					sleep(30); // wait a little before redoing the curl request
+					continue;
+				}
+				else {
+					response_code_ok = true;
+				}
+			}
+
+			/* always cleanup */
+			curl_easy_cleanup(curl);
+		}
+		curl_global_cleanup();
+		response = readBuffer;
+	} while (!response_code_ok);
+	return response;
 }
 
 int main()
@@ -105,19 +183,61 @@ int main()
 		nowTime_secs = time(&nowTime_secs); // update to current time
 		lg.i("Runtime date-time (this loop): " + return_current_time_and_date() + " LOCAL\n");
 		lg.d("Loop run number since program start: ", mainLoopCounter);
+		string actionToDo;
+		int count = 0;
+		int maxTries = 10;
+		lg.in("test");
+		if (InternetConnected())
+		{
+			while (true) // max tries loop
+			{
+				try {
+					initAll();
+					lg.b();
+					do
+					{
+						nowTime_secs = time(&nowTime_secs); // update to current time
+						settings::calEvent::updateValidEventTimers();
 
-		if (initAll() != 0) {
-			lg.e("Stopping, error in initAll");
-			return EXIT_FAILURE;
-		}
+						if (actionToDo == "startOn" || actionToDo == "endOn")
+						{
+							string result = garageLightCommand("poweron");
+							lg.i(result);
+						}
+						else if (actionToDo == "startOff" || actionToDo == "endOff")
+						{
+							string result = garageLightCommand("poweroff");
+							lg.i(result);
+						}
+
+						actionToDo = settings::calEventGroup::eventTimeCheck(10, 10);
+						if (actionToDo != "")
+						{
+							lg.i("End of wakeLoop, actionToBeDone is: ", actionToDo);
+							lg.i("Waiting ", 10, " seconds and re-running wakeLoop");
+							sleep(10);
+						}
+						settings::calEventGroup::confirmDuplicateProtect(actionToDo);
+					} while (actionToDo != "");
+					break; // Must exit maxTries loop if no error caught
+				}
+				catch (string e) {
+					lg.e("Critical failure: ", e, "\nFailure #", count, ", waiting 1 min and retrying.");
+					lg.i("Is internet connected?", InternetConnected());
+					sleep(60);
+					if (++count == maxTries)
+					{
+						lg.e("ERROR ", count, " out of max ", maxTries, "!!! Stopping, reason ->\n", e);
+						return EXIT_FAILURE;
+					}
+				}
+			} // max tries loop
+			settings::calEventGroup::cleanup(); // always cleanup, except if internet not working
+		} // internet connected
 		else {
-
-			lg.i("PROGRAM CODE HERE");
-
+			lg.i("\nProgram requires internet to run, will keep retrying.");
 		}
-
 		lg.b("\n<<<<<<<---------------------------PROGRAM TERMINATES HERE--------------------------->>>>>>>\n");
-		settings::calEventGroup::cleanup(); // always cleanup
 
 		mainLoopCounter++;
 		lg.b("Waiting for 30 seconds... (now -> ", return_current_time_and_date(), " LOCAL)\n\n\n\n\n\n\n\n\n");

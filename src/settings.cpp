@@ -8,9 +8,10 @@ static Log lg("Settings", Log::LogLevel::Debug);
 
 
 json settings::peopleSettings;
+json settings::generalSettings;
 std::vector<settings*> settings::people;
 std::vector<settings> settings::peopleActualInstances;
-
+string settings::u_lightURL;
 
 
 void settings::readSettings(string silent)
@@ -20,7 +21,9 @@ void settings::readSettings(string silent)
 		std::ifstream stream("settings.json");
 		stream >> settingsForm;
 		peopleSettings = settingsForm["people"];
+		generalSettings = settingsForm["General Settings"];
 
+		u_lightURL = generalSettings["lightURL"];
 
 		// Figure out how many people we have
 		int peopleFound = 0;

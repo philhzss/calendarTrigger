@@ -8,7 +8,7 @@ using json = nlohmann::json;
 // Stores program settings, including but not limited to settings.json stuff
 class settings
 {
-public:	
+public:
 	// Initial breakdown into separate json objects
 	static json teslaSettings, calendarSettings, generalSettings, carSettings, peopleSettings;
 	static std::vector<settings*> people;
@@ -49,6 +49,9 @@ public:
 	// General Setting
 	// [lat, long] Work coordinates
 	static std::vector<string> u_workCoords;
+	// General Setting
+	// URL to light to ping on and off
+	static string u_lightURL;
 
 
 
@@ -128,11 +131,12 @@ public:
 		void removePastEvents(settings* person);
 		void initEventTimers(settings* person);
 		// Must be run of every iteration of any "stuck loop" or the start/end timers wont be updated
-		void updateValidEventTimers(settings* person);
+		static void updateValidEventTimers();
 
 		// Whys isnt initiateCal part of calendar.h?
 
-
+		// Log all details for triggered event
+		void logDetail(int minsTrigger, string action);
 
 		// public start and end times as timeobjects
 		tm start{ 0 };
@@ -142,17 +146,21 @@ public:
 		int startTimer, endTimer;
 
 		// Keep track of if action has been done for start-end on a given shift
-		bool homeDone;
-		bool workDone;
-		
+		bool startOnDone;
+		bool startOffDone;
+		bool endOnDone;
+		bool endOffDone;
+
+
 		// Takes pointer to whom to update event for
 		void updateLastTriggeredEvent(settings* person);
 
+		
 		// Custom constructor
 		calEvent(string singleEvent_str);
 
 		// this line is probably bad:
-		calEvent()=default;
+		calEvent() = default;
 	};
 
 	class calEventGroup
@@ -160,15 +168,18 @@ public:
 	public:
 		std::vector<calEvent> myCalEvents;
 		std::vector<calEvent> myValidEvents;
-		calEvent* lastTriggeredEvent;
+		static calEvent* lastTriggeredEvent;
+		
+		// Run in main, when you're sure you're done with this trigger and it worked
+		static void confirmDuplicateProtect(string type);
 
 		// Static methods
-		string eventTimeCheck(int wakeTimer, int triggerTimer);
+		static string eventTimeCheck(int minsBefore, int minsAfter);
 
 		// Cleanup at end of program
 		static void cleanup();
 	};
-	
+
 	calEvent event;
 	calEventGroup allEvents;
 };

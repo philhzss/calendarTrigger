@@ -94,23 +94,24 @@ void settings::calEvent::logDetail(int minsTrigger, string action)
 {
 	if (action == "startOn")
 	{
-		lg.d("Triggered by a timer value of (timer-minsBefore): " + std::to_string(startTimer - minsTrigger));
+		lg.d("Triggered because the shift starts in (timer (", startTimer, ") - minsBefore (", minsTrigger, ")): " + std::to_string(startTimer - minsTrigger));
 
 	}
 	else if (action == "startOff")
 	{
-		lg.d("Triggered by a timer value of (timer+minsAfter): " + std::to_string(startTimer + minsTrigger));
+		lg.d("Triggered because the shift starts in (timer (", startTimer, ") + minsAfter (", minsTrigger, ")): " + std::to_string(startTimer + minsTrigger));
+
 	}
 	else if (action == "endOn")
 	{
-		lg.d("Triggered by a timer value of (timer-minsBefore): " + std::to_string(endTimer - minsTrigger));
-
+		lg.d("Triggered because the shift ends in (timer (", endTimer, ") - minsBefore (", minsTrigger, ")): " + std::to_string(endTimer - minsTrigger));
 	}
 	else if (action == "endOff")
 	{
-		lg.d("Triggered by a timer value of (timer+minsAfter): " + std::to_string(endTimer + minsTrigger));
+		lg.d("Triggered because the shift ends in (timer (", endTimer, ") + minsAfter (", minsTrigger, ")): " + std::to_string(endTimer + minsTrigger));
 	}
-
+	lg.d("All times in minutes");
+	
 	lg.p
 	(
 		"::Trigger debug::"

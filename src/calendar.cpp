@@ -185,7 +185,7 @@ void initiateCal()
 
 
 		// The custom myCalEvents vector is initialized
-		lg.i("There are " + std::to_string(person->allEvents.myCalEvents.size()) + " events in ", person->u_name, "'s database, filtered from " + std::to_string(calEventsVector.size()) + " events. This includes past events, will be filtered later.");
+		lg.i(person->u_name, "'s calendar ignored words filtered, now " + std::to_string(person->allEvents.myCalEvents.size()) + " events down from " + std::to_string(calEventsVector.size()) + ". (includes past events)");
 
 		// Parse myCalEvents items to get their event start-end times set as datetime objects
 		for (settings::calEvent& event : person->allEvents.myCalEvents)
@@ -370,7 +370,7 @@ string settings::calEventGroup::eventTimeCheck(int minsBefore, int minsAfter)
 				}
 				else
 				{
-					lg.i("EVENT HAD ALREADY TRIGGERED for this turnOn, ignoring.");
+					lg.i("This event has already turned on the lights, ignoring.");
 					return "duplicate";
 				}
 			}
@@ -387,7 +387,7 @@ string settings::calEventGroup::eventTimeCheck(int minsBefore, int minsAfter)
 				}
 				else
 				{
-					lg.i("EVENT HAD ALREADY TRIGGERED for this turnOff, ignoring.");
+					lg.i("This event has already turned off the lights, ignoring.");
 					return "duplicate";
 				}
 			}
@@ -404,7 +404,7 @@ string settings::calEventGroup::eventTimeCheck(int minsBefore, int minsAfter)
 				}
 				else
 				{
-					lg.i("EVENT HAD ALREADY TRIGGERED for this turnOn, ignoring.");
+					lg.i("This event has already turned on the lights, ignoring.");
 					return "duplicate";
 				}
 			}
@@ -421,7 +421,7 @@ string settings::calEventGroup::eventTimeCheck(int minsBefore, int minsAfter)
 				}
 				else
 				{
-					lg.i("EVENT HAD ALREADY TRIGGERED for this turnOff, ignoring.");
+					lg.i("This event has already turned off the lights, ignoring.");
 					return "duplicate";
 				}
 			}
@@ -436,7 +436,7 @@ string settings::calEventGroup::eventTimeCheck(int minsBefore, int minsAfter)
 		lg.d(person->u_name, "'s schedule has been checked, nothing found");
 	}
 	// If we're here, no event matched any parameter
-	lg.d("Returning nothing, no matching events for anyone at ", return_current_time_and_date());
+	lg.d("No events triggered for anyone at ", return_current_time_and_date());
 	return "";
 }
 
@@ -468,11 +468,6 @@ void settings::calEventGroup::confirmDuplicateProtect(string type)
 
 void settings::calEventGroup::cleanup()
 {
-	/*for (settings* person : settings::people)
-	{
-		person->allEvents.myCalEvents.clear();
-		person->allEvents.myValidEvents.clear();
-	}*/
 	settings::people.clear();
 	settings::peopleActualInstances.clear();
 }

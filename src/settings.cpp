@@ -32,7 +32,7 @@ void settings::readSettings(string silent)
 			peopleFound++;
 		}
 
-		lg.i("There are ", peopleFound, " people to initialize from settings.json.");
+		lg.d("There are ", peopleFound, " people to initialize from settings.json.");
 
 
 		json activeJsonPerson;
@@ -50,7 +50,7 @@ void settings::readSettings(string silent)
 			activePerson.u_commuteTime = activeJsonPerson["commuteTime"];
 			activePerson.intcommuteTime = std::stoi(activePerson.u_commuteTime);
 			activeJsonPerson["wordsToIgnore"].get_to(activePerson.u_wordsToIgnore);
-			lg.d("Processed ", activePerson.u_name, ", person #", personNumJson + 1, "/", peopleFound, ".");
+			lg.i("Processed ", activePerson.u_name, ", person #", personNumJson + 1, "/", peopleFound, ".");
 			settings::peopleActualInstances.push_back(activePerson);
 		}
 
@@ -61,7 +61,7 @@ void settings::readSettings(string silent)
 		}
 
 
-		lg.i(settings::people.size(), " people have been initialized.");
+		lg.d(settings::people.size(), " people have been initialized.");
 		lg.b();
 		lg.d("Settings file settings.json successfully read.");
 

@@ -12,7 +12,6 @@ time_t nowTime_secs = time(&nowTime_secs);
 
 // Make sure internet connection works
 bool InternetConnected() {
-	lg.p("Running internet_connected() function");
 	bool internet_res;
 	CURL* curl = curl_easy_init();
 	if (curl) {
@@ -22,7 +21,7 @@ bool InternetConnected() {
 		int curlRes = curl_easy_perform(curl);
 		if (curlRes == 0) {
 			internet_res = true;
-			lg.i("~Internet connection check successful~");
+			lg.d("~Internet connection check successful~");
 		}
 		else {
 			internet_res = false;
@@ -32,30 +31,29 @@ bool InternetConnected() {
 			long response_code;
 			curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);
 			lg.e("CURL Error Code: ", curlRes);
-			lg.d("HTTP Error Code (will be 0 if absolutely can't connect): ", response_code);
-			lg.d("See https://curl.haxx.se/libcurl/c/libcurl-errors.html for details.");
+			lg.e("HTTP Error Code (will be 0 if absolutely can't connect): ", response_code);
+			lg.e("See https://curl.haxx.se/libcurl/c/libcurl-errors.html for details.");
 		}
 		/* always cleanup */
 		curl_easy_cleanup(curl);
 	}
 	curl_global_cleanup();
 
-	lg.p("End of internet_connected() function\n");
 	return internet_res;
 }
 
-// Time functions
-const string return_current_time_and_date()
+// Will return current time if no parameter, or parameter tstruct time
+const string return_current_time_and_date(time_t& time_to_return)
 {
 	struct tm tstruct;
 	char buf[80];
-	tstruct = *localtime(&nowTime_secs);
+	tstruct = *localtime(&time_to_return);
 	// VERIFY LOGGER HERE
 	if (lg.ReadLevel() == Log::Programming)
 	{
 		cout << "TEST NOW TIME STRUCT" << endl;
 		cout << "nowTime_secs before conversions, should be the same after:" << endl;
-		cout << nowTime_secs << endl;
+		cout << time_to_return << endl;
 		lg.d
 		(
 			"::TEST NOW TIME STRUCT::"
@@ -132,7 +130,6 @@ string garageLightCommand(string command)
 
 			// Serialize the package json to string
 			string data = "command=" + command;
-			lg.i(data);
 			curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
 			curl_easy_setopt(curl, CURLOPT_POSTFIELDS, data.c_str());
 			curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, data.length());
@@ -177,16 +174,16 @@ string garageLightCommand(string command)
 int main()
 {
 	int mainLoopCounter = 1;
+	time_t launchTime = time(&nowTime_secs);
 	while (true)
 	{
-		lg.b("\n\n>>>>>>>------------------------------PROGRAM STARTS HERE----------------------------<<<<<<<\n");
+		lg.b("\n\n>>>>>>>------------------------------PROGRAM STARTS HERE (loop #", mainLoopCounter,")----------------------------<<<<<<<");
 		nowTime_secs = time(&nowTime_secs); // update to current time
-		lg.i("Runtime date-time (this loop): " + return_current_time_and_date() + " LOCAL\n");
-		lg.d("Loop run number since program start: ", mainLoopCounter);
+		lg.i("Runtime date-time (this loop): " + return_current_time_and_date() + " LOCAL");
+		lg.i("Launch date-time (first loop): " + return_current_time_and_date(launchTime) + " LOCAL\n");
 		string actionToDo;
 		int count = 0;
 		int maxTries = 10;
-		lg.in("test");
 		if (InternetConnected())
 		{
 			while (true) // max tries loop
@@ -194,7 +191,7 @@ int main()
 				try {
 					initAll();
 					lg.b();
-					do
+					do // Trigger loop
 					{
 						nowTime_secs = time(&nowTime_secs); // update to current time
 						settings::calEvent::updateValidEventTimers();
@@ -202,19 +199,19 @@ int main()
 						if (actionToDo == "startOn" || actionToDo == "endOn")
 						{
 							string result = garageLightCommand("poweron");
-							lg.i(result);
+							lg.i("Command poweron sent to device, result: ", result);
 						}
 						else if (actionToDo == "startOff" || actionToDo == "endOff")
 						{
 							string result = garageLightCommand("poweroff");
-							lg.i(result);
+							lg.i("Command poweroff sent to device, result: ", result);
 						}
 
 						actionToDo = settings::calEventGroup::eventTimeCheck(10, 10);
 						if (actionToDo != "")
 						{
-							lg.i("End of wakeLoop, actionToBeDone is: ", actionToDo);
-							lg.i("Waiting ", 10, " seconds and re-running wakeLoop");
+							lg.i("End of trigger loop, actionToBeDone is: ", actionToDo);
+							lg.i("Waiting ", 10, " seconds and re-running trigger loop");
 							sleep(10);
 						}
 						settings::calEventGroup::confirmDuplicateProtect(actionToDo);
@@ -237,7 +234,7 @@ int main()
 		else {
 			lg.i("\nProgram requires internet to run, will keep retrying.");
 		}
-		lg.b("\n<<<<<<<---------------------------PROGRAM TERMINATES HERE--------------------------->>>>>>>\n");
+		lg.b("\n<<<<<<<---------------------------PROGRAM TERMINATES HERE (loop #", mainLoopCounter, ")--------------------------->>>>>>>");
 
 		mainLoopCounter++;
 		lg.b("Waiting for 30 seconds... (now -> ", return_current_time_and_date(), " LOCAL)\n\n\n\n\n\n\n\n\n");

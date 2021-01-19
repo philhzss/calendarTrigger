@@ -52,6 +52,12 @@ public:
 	// General Setting
 	// URL to light to ping on and off
 	static string u_lightURL;
+	// General Setting
+	// How many mins before a triggertime (event start or end) to turn on device
+	static string u_minsBefore;
+	// General Setting
+	// How many mins after a triggertime (event start or end) to turn off device
+	static string u_minsAfter;
 
 
 
@@ -155,7 +161,7 @@ public:
 		// Takes pointer to whom to update event for
 		void updateLastTriggeredEvent(settings* person);
 
-		
+
 		// Custom constructor
 		calEvent(string singleEvent_str);
 
@@ -169,7 +175,7 @@ public:
 		std::vector<calEvent> myCalEvents;
 		std::vector<calEvent> myValidEvents;
 		static calEvent* lastTriggeredEvent;
-		
+
 		// Run in main, when you're sure you're done with this trigger and it worked
 		static void confirmDuplicateProtect(string type);
 

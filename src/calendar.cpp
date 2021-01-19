@@ -111,7 +111,7 @@ void settings::calEvent::logDetail(int minsTrigger, string action)
 		lg.d("Triggered because the shift ends in (timer (", endTimer, ") + minsAfter (", minsTrigger, ")): " + std::to_string(endTimer + minsTrigger));
 	}
 	lg.d("All times in minutes");
-	
+
 	lg.p
 	(
 		"::Trigger debug::"
@@ -185,7 +185,7 @@ void initiateCal()
 
 
 		// The custom myCalEvents vector is initialized
-		lg.i(person->u_name, "'s calendar ignored words filtered, now " + std::to_string(person->allEvents.myCalEvents.size()) + " events down from " + std::to_string(calEventsVector.size()) + ". (includes past events)");
+		lg.d(person->u_name, "'s calendar ignored words filtered, now " + std::to_string(person->allEvents.myCalEvents.size()) + " events down from " + std::to_string(calEventsVector.size()) + ". (includes past events)");
 
 		// Parse myCalEvents items to get their event start-end times set as datetime objects
 		for (settings::calEvent& event : person->allEvents.myCalEvents)
@@ -311,7 +311,7 @@ void settings::calEvent::removePastEvents(settings* person)
 
 	}
 	int newSize = person->allEvents.myValidEvents.size();
-	lg.i("Past events filtered, there are now " + std::to_string(newSize) + " events in the database, filtered from " + std::to_string(origSize) + " events.");
+	lg.i(person->u_name, " has " + std::to_string(newSize) + " upcoming events, filtered from " + std::to_string(origSize) + " events.");
 
 	// Only print this if level is higher than programming as it's a lot of lines
 	if (lg.ReadLevel() >= Log::Programming) {
@@ -436,7 +436,7 @@ string settings::calEventGroup::eventTimeCheck(int minsBefore, int minsAfter)
 		lg.d(person->u_name, "'s schedule has been checked, nothing found");
 	}
 	// If we're here, no event matched any parameter
-	lg.d("No events triggered for anyone at ", return_current_time_and_date());
+	lg.d("No events triggered for anyone with minsBefore:", minsBefore, " and minsAfter:", minsAfter, " at ", return_current_time_and_date());
 	return "";
 }
 

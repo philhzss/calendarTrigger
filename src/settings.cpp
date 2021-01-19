@@ -12,6 +12,8 @@ json settings::generalSettings;
 std::vector<settings*> settings::people;
 std::vector<settings> settings::peopleActualInstances;
 string settings::u_lightURL;
+string settings::u_minsBefore;
+string settings::u_minsAfter;
 
 
 void settings::readSettings(string silent)
@@ -24,6 +26,8 @@ void settings::readSettings(string silent)
 		generalSettings = settingsForm["General Settings"];
 
 		u_lightURL = generalSettings["lightURL"];
+		u_minsBefore = generalSettings["minsBeforeTrigger"];
+		u_minsAfter = generalSettings["minsAfterTrigger"];
 
 		// Figure out how many people we have
 		int peopleFound = 0;
@@ -31,9 +35,6 @@ void settings::readSettings(string silent)
 		{
 			peopleFound++;
 		}
-
-		lg.d("There are ", peopleFound, " people to initialize from settings.json.");
-
 
 		json activeJsonPerson;
 
@@ -54,17 +55,14 @@ void settings::readSettings(string silent)
 			settings::peopleActualInstances.push_back(activePerson);
 		}
 
-		
-		for (settings &peopleInstances : settings::peopleActualInstances)
+
+		for (settings& peopleInstances : settings::peopleActualInstances)
 		{
 			settings::people.push_back(&peopleInstances);
 		}
 
 
-		lg.d(settings::people.size(), " people have been initialized.");
-		lg.b();
-		lg.d("Settings file settings.json successfully read.");
-
+		lg.d(settings::people.size(), " people have been initialized, settings file successfully read.");
 	}
 	catch (nlohmann::detail::parse_error)
 	{
@@ -83,18 +81,21 @@ void settings::readSettings(string silent)
 		for (settings* person : people)
 		{
 			lg.b();
-			lg.i("Info for person: ", person->u_name);
+			lg.i(person->u_name);
 			if (person->ignoredWordsExist(person))
 			{
 				string ignoredString = person->ignoredWordsPrint();
-				lg.b("Cal: Calendar URL: " + person->u_calendarURL +
-					"\nCal: Word(s) to ignore events in calendar (", person->u_wordsToIgnore.size(), "): " + ignoredString);
+				lg.b("Cal: Word(s) to ignore events in calendar (", person->u_wordsToIgnore.size(), "): " + ignoredString);
 			}
 			else {
-				lg.b("Cal: Calendar URL: " + person->u_calendarURL);
-				lg.b("No ignored words were specified.");
+				lg.b("No ignored words were specified for this calendar.");
 			}
-			lg.b("Cal: Commute time setting: " + person->u_commuteTime + " minutes.");
+			int eventStart = abs(-person->intcommuteTime + person->intshiftStartBias);
+			int eventEnd = abs(person->intcommuteTime + person->intshiftEndBias);
+			string wordStart = ((-person->intcommuteTime + person->intshiftStartBias) > 0) ? "after" : "before";
+			string wordEnd = ((person->intcommuteTime + person->intshiftEndBias) > 0) ? "after" : "before";
+			lg.b("Cal: Departure from home time: ", eventStart, " minutes ", wordStart, " event start time.");
+			lg.b("Cal: Arrival at home time: ", eventEnd, " minutes ", wordEnd, " event end time.");
 		}
 	}
 	return;

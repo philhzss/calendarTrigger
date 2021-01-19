@@ -21,7 +21,6 @@ bool InternetConnected() {
 		int curlRes = curl_easy_perform(curl);
 		if (curlRes == 0) {
 			internet_res = true;
-			lg.d("~Internet connection check successful~");
 		}
 		else {
 			internet_res = false;
@@ -207,7 +206,7 @@ int main()
 							lg.i("Command poweroff sent to device, result: ", result);
 						}
 
-						actionToDo = settings::calEventGroup::eventTimeCheck(10, 10);
+						actionToDo = settings::calEventGroup::eventTimeCheck(stoi(settings::u_minsBefore), stoi(settings::u_minsAfter));
 						if (actionToDo != "")
 						{
 							lg.i("End of trigger loop, actionToBeDone is: ", actionToDo);

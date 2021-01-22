@@ -122,7 +122,7 @@ string garageLightCommand(string command)
 			curl_easy_setopt(curl, CURLOPT_URL, url_to_use);
 			/* Now specify the POST data */
 			struct curl_slist* headers = nullptr;
-			//headers = curl_slist_append(headers, "Content-Type: application/json");
+			headers = curl_slist_append(headers, "User-Agent: calendarTrigger");
 
 
 
@@ -218,14 +218,17 @@ int main()
 					break; // Must exit maxTries loop if no error caught
 				}
 				catch (string e) {
-					lg.e("Critical failure: ", e, "\nFailure #", count, ", waiting 1 min and retrying.");
-					lg.i("Is internet connected?", InternetConnected());
+					bool internetConnectedAfterError = InternetConnected();
+					lg.e("Critical failure: ", e);
+					lg.e("Failure #", count, ", waiting 1 min and retrying.");
+					lg.i("Is internet connected? Will stop if false -> ", internetConnectedAfterError);
 					sleep(60);
-					if (++count == maxTries)
+					if (++count == maxTries || !internetConnectedAfterError)
 					{
 						lg.e("ERROR ", count, " out of max ", maxTries, "!!! Stopping, reason ->\n", e);
 						return EXIT_FAILURE;
 					}
+					settings::calEventGroup::cleanup(); // always cleanup, except if internet not working
 				}
 			} // max tries loop
 			settings::calEventGroup::cleanup(); // always cleanup, except if internet not working

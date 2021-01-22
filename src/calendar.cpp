@@ -298,7 +298,6 @@ void settings::calEvent::updateValidEventTimers()
 
 void settings::calEvent::removePastEvents(settings* person)
 {
-
 	int origSize = person->allEvents.myCalEvents.size();
 	for (calEvent& event : person->allEvents.myCalEvents)
 	{

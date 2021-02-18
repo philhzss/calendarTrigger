@@ -15,6 +15,14 @@ string GetCalRawData(settings* person) {
 	try
 	{
 		string rawCalContent = curl_GET(person->u_calendarURL);
+		if (rawCalContent.find("VCALENDAR") != std::string::npos)
+		{
+			lg.p("VCALENDAR found, ", person->u_name, "'s link is a valid calendar");
+		}
+		else {
+			lg.d("VCALENDAR NOT found, ", person->u_name, "'s calendar invalid, throwing error");
+			throw lg.prepareOnly(person->u_name, " CALENDAR INVALID");
+		}
 		return rawCalContent;
 	}
 	catch (string e)

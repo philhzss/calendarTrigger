@@ -58,6 +58,9 @@ public:
 	// General Setting
 	// How many mins after a triggertime (event start or end) to turn off device
 	static string u_minsAfter;
+	// General Setting
+	// If false, ignore shift endings when scanning for events
+	static bool u_shiftEndingsTriggerLight;
 
 
 

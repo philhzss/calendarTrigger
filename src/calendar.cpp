@@ -407,7 +407,12 @@ string settings::calEventGroup::eventTimeCheck(int minsBefore, int minsAfter)
 					event.logDetail(minsBefore, "endOn");
 					event.updateLastTriggeredEvent(person);
 					lg.i("Event triggered for ", person->u_name);
-					return "endOn";
+					if (settings::u_shiftEndingsTriggerLight) {
+						return "endOn";
+					}
+					else {
+						lg.i("Event end would have triggered endOff, skipping due to settings");
+					}
 				}
 				else
 				{
@@ -424,7 +429,12 @@ string settings::calEventGroup::eventTimeCheck(int minsBefore, int minsAfter)
 					event.logDetail(minsAfter, "endOff");
 					event.updateLastTriggeredEvent(person);
 					lg.i("Event triggered for ", person->u_name);
-					return "endOff";
+					if (settings::u_shiftEndingsTriggerLight) {
+						return "endOff";
+					}
+					else {
+						lg.i("Event end would have triggered endOff, skipping due to settings");
+					}
 				}
 				else
 				{

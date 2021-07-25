@@ -14,6 +14,7 @@ std::vector<settings> settings::peopleActualInstances;
 string settings::u_lightURL;
 string settings::u_minsBefore;
 string settings::u_minsAfter;
+bool settings::u_shiftEndingsTriggerLight;
 
 
 void settings::readSettings(string silent)
@@ -28,6 +29,7 @@ void settings::readSettings(string silent)
 		u_lightURL = generalSettings["lightURL"];
 		u_minsBefore = generalSettings["minsBeforeTrigger"];
 		u_minsAfter = generalSettings["minsAfterTrigger"];
+		u_shiftEndingsTriggerLight = generalSettings["shiftEndingsTriggerLight"];
 
 		// Figure out how many people we have
 		int peopleFound = 0;
@@ -53,6 +55,10 @@ void settings::readSettings(string silent)
 			activeJsonPerson["wordsToIgnore"].get_to(activePerson.u_wordsToIgnore);
 			lg.i("Processed ", activePerson.u_name, ", person #", personNumJson + 1, "/", peopleFound, ".");
 			settings::peopleActualInstances.push_back(activePerson);
+		}
+
+		if (!u_shiftEndingsTriggerLight) {
+			lg.i("NOTE: Shift endings will not trigger lights.");
 		}
 
 

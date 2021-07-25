@@ -1,4 +1,10 @@
 {
+  "General Settings": {
+    "lightURL": "link to API / light url",
+    "minsBeforeTrigger": "10",
+    "minsAfterTrigger": "10",
+    "shiftEndingsTriggerLight": false
+  },
   "people": {
     "person1": [
       {

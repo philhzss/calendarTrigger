@@ -40,6 +40,7 @@ void settings::readSettings(string silent)
 
 		json activeJsonPerson;
 
+
 		for (int personNumJson = 0; personNumJson < peopleFound; personNumJson++)
 		{
 			settings activePerson;
@@ -53,6 +54,7 @@ void settings::readSettings(string silent)
 			activePerson.u_commuteTime = activeJsonPerson["commuteTime"];
 			activePerson.intcommuteTime = std::stoi(activePerson.u_commuteTime);
 			activeJsonPerson["wordsToIgnore"].get_to(activePerson.u_wordsToIgnore);
+			activePerson.lightShouldBeOn = false;
 			lg.i("Processed ", activePerson.u_name, ", person #", personNumJson + 1, "/", peopleFound, ".");
 			settings::peopleActualInstances.push_back(activePerson);
 		}

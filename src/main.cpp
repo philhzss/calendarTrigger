@@ -176,7 +176,7 @@ int main()
 	time_t launchTime = time(&nowTime_secs);
 	while (true)
 	{
-		lg.b("\n\n>>>>>>>------------------------------PROGRAM STARTS HERE (loop #", mainLoopCounter,")----------------------------<<<<<<<");
+		lg.b("\n\n>>>>>>>------------------------------PROGRAM STARTS HERE (loop #", mainLoopCounter, ")----------------------------<<<<<<<");
 		nowTime_secs = time(&nowTime_secs); // update to current time
 		lg.i("Runtime date-time (this loop): " + return_current_time_and_date() + " LOCAL");
 		lg.i("Launch date-time (first loop): " + return_current_time_and_date(launchTime) + " LOCAL\n");
@@ -209,11 +209,20 @@ int main()
 						actionToDo = settings::calEventGroup::eventTimeCheck(stoi(settings::u_minsBefore), stoi(settings::u_minsAfter));
 						if (actionToDo != "")
 						{
-							lg.i("End of trigger loop, actionToBeDone is: ", actionToDo);
-							lg.i("Waiting ", 10, " seconds and re-running trigger loop");
+							lg.i("End of trigger loop, actionToBeDone is: ", actionToDo, " // waiting 10 secs (", return_current_time_and_date(), ")");
 							sleep(10);
 						}
-						settings::calEventGroup::confirmDuplicateProtect(actionToDo);
+						settings::calEventGroup::confirmDuplicateProtect(actionToDo); // might get rid of this
+						for (settings* person : settings::people) {
+							if (person->lightShouldBeOn) 
+							{
+								lg.d(person->u_name, "'s light should be ON right now. (lightShouldBeOn: ", person->lightShouldBeOn, ")");
+							}
+							else 
+							{
+								lg.d(person->u_name, "'s light should be off right now. (lightShouldBeOn: ", person->lightShouldBeOn, ")");
+							}
+						}
 					} while (actionToDo != "");
 					break; // Must exit maxTries loop if no error caught
 				}

@@ -128,6 +128,12 @@ public:
 	static string u_teslaClientSecret;
 
 
+	// Trigger storage
+	// Should lights currently be on for this person
+	bool lightShouldBeOn;
+
+
+
 	class calEvent
 	{
 	private:
@@ -141,7 +147,7 @@ public:
 		void initEventTimers(settings* person);
 		// Must be run of every iteration of any "stuck loop" or the start/end timers wont be updated
 		static void updateValidEventTimers();
-
+		
 		// Whys isnt initiateCal part of calendar.h?
 
 		// Log all details for triggered event
@@ -164,6 +170,8 @@ public:
 		// Takes pointer to whom to update event for
 		void updateLastTriggeredEvent(settings* person);
 
+		// *******************************
+		void updateThisEventStat(settings::calEvent &event, settings* person);
 
 		// Custom constructor
 		calEvent(string singleEvent_str);
@@ -184,6 +192,9 @@ public:
 
 		// Static methods
 		static string eventTimeCheck(int minsBefore, int minsAfter);
+		
+		// Check if any person is preventing light shut down
+		static string verifyCanLightTurnOff(string action);
 
 		// Cleanup at end of program
 		static void cleanup();

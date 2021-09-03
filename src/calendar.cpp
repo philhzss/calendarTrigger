@@ -282,6 +282,7 @@ void settings::calEvent::initEventTimers(settings* person)
 	}
 }
 
+// Runs on every single event
 void settings::calEvent::updateValidEventTimers()
 {
 	nowTime_secs;
@@ -300,6 +301,7 @@ void settings::calEvent::updateValidEventTimers()
 			// Calculate diff between now and event start/stop times, store value in minutes in object timers
 			event.startTimer = (difftime(startTime_secs, nowTime_secs)) / 60;
 			event.endTimer = (difftime(endTime_secs, nowTime_secs)) / 60;
+
 		}
 	}
 }
@@ -348,6 +350,8 @@ void settings::calEvent::removePastEvents(settings* person)
 // Check if any start-end event is valid, and return appropriate string based on timers
 string settings::calEventGroup::eventTimeCheck(int minsBefore, int minsAfter)
 {
+	string result;
+	std::vector<string> results;
 	for (settings* person : settings::people)
 	{
 		// Verify if any event timer is coming up soon (within the defined timer parameter) return action
@@ -356,13 +360,20 @@ string settings::calEventGroup::eventTimeCheck(int minsBefore, int minsAfter)
 			/* For the operations, the "on" ops will be before the start or end timer (the timer will be >0)
 			For the "off" ops, since they occur after the event timer has past, we need to allow negative values
 			We must stop searching for the trigger after a certain time otherwise we'll stay stuck in the loop
-			with negative end/start timers forever. Using the minsAfter - a few extra mins should work */
+			with negative end/start timers forever. Using the minsAfter - a few extra mins should work*/
+			int operationLengthBuffer = 1.5 * (stoi(settings::u_minsAfter) + stoi(settings::u_minsBefore));
 			int operationShiftStart = event.startTimer - person->intcommuteTime + person->intshiftStartBias;
 			int operationShiftEnd = event.endTimer + person->intcommuteTime + person->intshiftEndBias;
 			bool operationStartOn = operationShiftStart <= minsBefore && operationShiftStart > 0;
+			bool operationStartHold = operationShiftStart <= minsBefore && operationShiftStart > -minsAfter && operationShiftStart > -operationLengthBuffer;
 			bool operationStartOff = operationShiftStart <= -minsAfter && operationShiftStart > -minsAfter - 4;
 			bool operationEndOn = operationShiftEnd <= minsBefore && operationShiftEnd > 0;
+			bool operationEndHold = operationShiftEnd <= minsBefore && operationShiftEnd > -minsAfter && operationShiftEnd > -operationLengthBuffer;
 			bool operationEndOff = operationShiftEnd <= -minsAfter && operationShiftEnd > -minsAfter - 4;
+
+			// Everything doesnt work because operation Shift Start ends and then kicks us out of the main loop :(
+
+			result = "fresh"; // Must be reset each loop or stays the same for all following events until overwritten again!!
 
 			if (operationStartOn)
 			{
@@ -373,12 +384,12 @@ string settings::calEventGroup::eventTimeCheck(int minsBefore, int minsAfter)
 					event.logDetail(minsBefore, "startOn");
 					event.updateLastTriggeredEvent(person);
 					lg.i("Event triggered for ", person->u_name);
-					return "startOn";
+					result = "startOn";
 				}
 				else
 				{
 					lg.i("This event has already turned on the lights, ignoring.");
-					return "duplicate";
+					result = "duplicate";
 				}
 			}
 			else if (operationStartOff)
@@ -390,12 +401,13 @@ string settings::calEventGroup::eventTimeCheck(int minsBefore, int minsAfter)
 					event.logDetail(minsAfter, "startOff");
 					event.updateLastTriggeredEvent(person);
 					lg.i("Event triggered for ", person->u_name);
-					return "startOff";
+					result = "startOff";
+					event.startOffDone = true;
 				}
 				else
 				{
 					lg.i("This event has already turned off the lights, ignoring.");
-					return "duplicate";
+					result = "duplicate";
 				}
 			}
 			else if (operationEndOn)
@@ -408,7 +420,7 @@ string settings::calEventGroup::eventTimeCheck(int minsBefore, int minsAfter)
 					event.updateLastTriggeredEvent(person);
 					lg.i("Event triggered for ", person->u_name);
 					if (settings::u_shiftEndingsTriggerLight) {
-						return "endOn";
+						result = "endOn";
 					}
 					else {
 						lg.i("Event end would have triggered endOff, skipping due to settings");
@@ -417,7 +429,7 @@ string settings::calEventGroup::eventTimeCheck(int minsBefore, int minsAfter)
 				else
 				{
 					lg.i("This event has already turned on the lights, ignoring.");
-					return "duplicate";
+					result = "duplicate";
 				}
 			}
 			else if (operationEndOff)
@@ -430,7 +442,8 @@ string settings::calEventGroup::eventTimeCheck(int minsBefore, int minsAfter)
 					event.updateLastTriggeredEvent(person);
 					lg.i("Event triggered for ", person->u_name);
 					if (settings::u_shiftEndingsTriggerLight) {
-						return "endOff";
+						result = "endOff";
+						event.endOffDone = true;
 					}
 					else {
 						lg.i("Event end would have triggered endOff, skipping due to settings");
@@ -439,8 +452,13 @@ string settings::calEventGroup::eventTimeCheck(int minsBefore, int minsAfter)
 				else
 				{
 					lg.i("This event has already turned off the lights, ignoring.");
-					return "duplicate";
+					result = "duplicate";
 				}
+			}
+			else if (operationStartHold || operationEndHold)
+			{
+				lg.d("Waiting between On & Off timers, holding");
+				result = "duplicate";
 			}
 			else
 			{
@@ -449,9 +467,43 @@ string settings::calEventGroup::eventTimeCheck(int minsBefore, int minsAfter)
 					"\nNo match for endOn: ", event.endTimer - minsBefore,
 					"\nNo match for endOff: ", event.endTimer + minsAfter);
 			}
+			if (result != "" && result != "fresh") // If result is blank (it will be for all non triggered events), we don't want it
+			{
+				lg.i(person->u_name, "'s schedule has a match, calculated result: ", result);
+				results.push_back(result); // Add all results into vector
+				event.updateThisEventStat(event, person);
+			}
 		}
-		lg.d(person->u_name, "'s schedule has been checked, nothing found");
+		lg.i("No further events for calendar: ", person->u_name);
 	}
+	// Parse all the results to choose what to do
+	if (std::any_of(results.cbegin(), results.cend(), [](string anyResult) { return anyResult.find("startOn") != std::string::npos; }))
+	{
+		lg.d("At least one event is calling for startOn");
+		return "startOn";
+	}
+	else if (std::any_of(results.cbegin(), results.cend(), [](string anyResult) { return anyResult.find("endOn") != std::string::npos; }))
+	{
+		lg.d("At least one event is calling for endOn");
+		return "endOn";
+	}
+	else if (std::any_of(results.cbegin(), results.cend(), [](string anyResult) { return anyResult.find("startOff") != std::string::npos; }))
+	{
+		lg.d("At least one event is calling for startOff, verifying");
+		return verifyCanLightTurnOff("startOff");
+	}
+	else if (std::any_of(results.cbegin(), results.cend(), [](string anyResult) { return anyResult.find("endOff") != std::string::npos; }))
+	{
+		lg.d("At least one event is calling for endOff, verifying");
+		return verifyCanLightTurnOff("endOff");
+	}
+	// At this point, the vector is either empty or contains only duplicates
+	else if (std::any_of(results.cbegin(), results.cend(), [](string anyResult) { return anyResult.find("duplicate") != std::string::npos; }))
+	{
+		lg.d("All events calling for duplicate, sending action back to main");
+		return "duplicate";
+	}
+
 	// If we're here, no event matched any parameter
 	lg.d("No events triggered for anyone with minsBefore:", minsBefore, " and minsAfter:", minsAfter, " at ", return_current_time_and_date());
 	return "";
@@ -459,8 +511,24 @@ string settings::calEventGroup::eventTimeCheck(int minsBefore, int minsAfter)
 
 void settings::calEvent::updateLastTriggeredEvent(settings* person)
 {
-	lg.d("lastTriggeredEvent has been updated");
 	settings::calEventGroup::lastTriggeredEvent = this;
+	lg.d("lastTriggeredEvent has been updated");
+}
+
+
+void settings::calEvent::updateThisEventStat(settings::calEvent& event, settings* person) {
+	// Update if lights should be on for multi-calendar support
+	if (event.startOnDone && !event.startOffDone) {
+		person->lightShouldBeOn = true;
+	}
+	else if (event.endOnDone && !event.endOffDone) {
+		person->lightShouldBeOn = true;
+	}
+	else {
+		person->lightShouldBeOn = false;
+	}
+	// Runs on every single event (in the future), careful with logging this line:
+	lg.d(person->u_name, "'s lightShouldBeOn set to [", person->lightShouldBeOn, "] by startOnDone[", event.startOnDone, "], startOffDone[", event.startOffDone, "], endOnDone[", event.endOnDone, "], endOffDone[", event.endOffDone, "], ");
 }
 
 void settings::calEventGroup::confirmDuplicateProtect(string type)
@@ -488,3 +556,21 @@ void settings::calEventGroup::cleanup()
 	settings::people.clear();
 	settings::peopleActualInstances.clear();
 }
+
+string settings::calEventGroup::verifyCanLightTurnOff(string action) {
+	bool blockLightFromTurningOff = false;
+	for (settings* person : settings::people) {
+		if (person->lightShouldBeOn) {
+			blockLightFromTurningOff = true;
+			break;
+		}
+	}
+	if (blockLightFromTurningOff) {
+		return "blocked";
+	}
+	else {
+		return action;
+	}
+}
+
+

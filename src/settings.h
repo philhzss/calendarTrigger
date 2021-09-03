@@ -185,10 +185,6 @@ public:
 	public:
 		std::vector<calEvent> myCalEvents;
 		std::vector<calEvent> myValidEvents;
-		static calEvent* lastTriggeredEvent;
-
-		// Run in main, when you're sure you're done with this trigger and it worked
-		static void confirmDuplicateProtect(string type);
 
 		// Static methods
 		static string eventTimeCheck(int minsBefore, int minsAfter);

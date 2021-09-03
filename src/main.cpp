@@ -212,7 +212,6 @@ int main()
 							lg.i("End of trigger loop, actionToBeDone is: ", actionToDo, " // waiting 10 secs (", return_current_time_and_date(), ")");
 							sleep(10);
 						}
-						settings::calEventGroup::confirmDuplicateProtect(actionToDo); // might get rid of this
 						for (settings* person : settings::people) {
 							if (person->lightShouldBeOn) 
 							{

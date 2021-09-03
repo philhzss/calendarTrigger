@@ -6,7 +6,6 @@
 using std::string;
 
 static Log lg("Calendar", Log::LogLevel::Debug);
-settings::calEvent* settings::calEventGroup::lastTriggeredEvent;
 
 
 // Get long string of raw calendar data from URL
@@ -384,6 +383,7 @@ string settings::calEventGroup::eventTimeCheck(int minsBefore, int minsAfter)
 					event.updateLastTriggeredEvent(person);
 					lg.i("Event triggered for ", person->u_name);
 					result = "startOn";
+					event.startOnDone = true;
 				}
 				else
 				{
@@ -420,6 +420,7 @@ string settings::calEventGroup::eventTimeCheck(int minsBefore, int minsAfter)
 					lg.i("Event triggered for ", person->u_name);
 					if (settings::u_shiftEndingsTriggerLight) {
 						result = "endOn";
+						event.endOnDone = true;
 					}
 					else {
 						lg.i("Event end would have triggered endOff, skipping due to settings");
@@ -508,12 +509,6 @@ string settings::calEventGroup::eventTimeCheck(int minsBefore, int minsAfter)
 	return "";
 }
 
-void settings::calEvent::updateLastTriggeredEvent(settings* person)
-{
-	settings::calEventGroup::lastTriggeredEvent = this;
-	lg.d("lastTriggeredEvent has been updated");
-}
-
 
 void settings::calEvent::updateThisEventStat(settings::calEvent& event, settings* person) {
 	// Update if lights should be on for multi-calendar support
@@ -530,25 +525,6 @@ void settings::calEvent::updateThisEventStat(settings::calEvent& event, settings
 	lg.d(person->u_name, "'s lightShouldBeOn set to [", person->lightShouldBeOn, "] by startOnDone[", event.startOnDone, "], startOffDone[", event.startOffDone, "], endOnDone[", event.endOnDone, "], endOffDone[", event.endOffDone, "], ");
 }
 
-void settings::calEventGroup::confirmDuplicateProtect(string type)
-{
-	if (type == "startOn")
-	{
-		settings::calEventGroup::lastTriggeredEvent->startOnDone = true;
-	}
-	if (type == "startOff")
-	{
-		settings::calEventGroup::lastTriggeredEvent->startOffDone = true;
-	}
-	if (type == "endOn")
-	{
-		settings::calEventGroup::lastTriggeredEvent->endOnDone = true;
-	}
-	if (type == "endOff")
-	{
-		settings::calEventGroup::lastTriggeredEvent->endOffDone = true;
-	}
-}
 
 void settings::calEventGroup::cleanup()
 {

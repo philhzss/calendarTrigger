@@ -102,23 +102,22 @@ void settings::calEvent::logDetail(int minsTrigger, string action)
 {
 	if (action == "startOn")
 	{
-		lg.d("Triggered because the shift starts in (timer (", startTimer, ") - minsBefore (", minsTrigger, ")): " + std::to_string(startTimer - minsTrigger));
+		lg.d("Triggered because the shift starts in (timer (", startTimer, ") - minsBefore (", minsTrigger, ")): " + std::to_string(startTimer - minsTrigger) + " mins");
 
 	}
 	else if (action == "startOff")
 	{
-		lg.d("Triggered because the shift starts in (timer (", startTimer, ") + minsAfter (", minsTrigger, ")): " + std::to_string(startTimer + minsTrigger));
+		lg.d("Triggered because the shift starts in (timer (", startTimer, ") + minsAfter (", minsTrigger, ")): " + std::to_string(startTimer + minsTrigger) + " mins");
 
 	}
 	else if (action == "endOn")
 	{
-		lg.d("Triggered because the shift ends in (timer (", endTimer, ") - minsBefore (", minsTrigger, ")): " + std::to_string(endTimer - minsTrigger));
+		lg.d("Triggered because the shift ends in (timer (", endTimer, ") - minsBefore (", minsTrigger, ")): " + std::to_string(endTimer - minsTrigger) + " mins");
 	}
 	else if (action == "endOff")
 	{
-		lg.d("Triggered because the shift ends in (timer (", endTimer, ") + minsAfter (", minsTrigger, ")): " + std::to_string(endTimer + minsTrigger));
+		lg.d("Triggered because the shift ends in (timer (", endTimer, ") + minsAfter (", minsTrigger, ")): " + std::to_string(endTimer + minsTrigger) + " mins");
 	}
-	lg.d("All times in minutes");
 
 	lg.p
 	(
@@ -388,7 +387,7 @@ string settings::calEventGroup::eventTimeCheck(int minsBefore, int minsAfter)
 				}
 				else
 				{
-					lg.i("This event has already turned on the lights, ignoring.");
+					lg.p("This event has already turned on the lights, ignoring.");
 					result = "duplicate";
 				}
 			}
@@ -406,7 +405,7 @@ string settings::calEventGroup::eventTimeCheck(int minsBefore, int minsAfter)
 				}
 				else
 				{
-					lg.i("This event has already turned off the lights, ignoring.");
+					lg.p("This event has already turned off the lights, ignoring.");
 					result = "duplicate";
 				}
 			}
@@ -428,7 +427,7 @@ string settings::calEventGroup::eventTimeCheck(int minsBefore, int minsAfter)
 				}
 				else
 				{
-					lg.i("This event has already turned on the lights, ignoring.");
+					lg.p("This event has already turned on the lights, ignoring.");
 					result = "duplicate";
 				}
 			}
@@ -451,13 +450,13 @@ string settings::calEventGroup::eventTimeCheck(int minsBefore, int minsAfter)
 				}
 				else
 				{
-					lg.i("This event has already turned off the lights, ignoring.");
+					lg.p("This event has already turned off the lights, ignoring.");
 					result = "duplicate";
 				}
 			}
 			else if (operationStartHold || operationEndHold)
 			{
-				lg.d("Waiting between On & Off timers, holding");
+				lg.d("Waiting between On & Off timers, holding (operationHold // duplicate)");
 				result = "duplicate";
 			}
 			else
@@ -474,7 +473,7 @@ string settings::calEventGroup::eventTimeCheck(int minsBefore, int minsAfter)
 				event.updateThisEventStat(event, person);
 			}
 		}
-		lg.i("No further events for calendar: ", person->u_name);
+		lg.i("No further events triggered for calendar: ", person->u_name);
 	}
 	// Parse all the results to choose what to do
 	if (std::any_of(results.cbegin(), results.cend(), [](string anyResult) { return anyResult.find("startOn") != std::string::npos; }))

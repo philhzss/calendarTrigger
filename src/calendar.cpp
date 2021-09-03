@@ -380,7 +380,6 @@ string settings::calEventGroup::eventTimeCheck(int minsBefore, int minsAfter)
 					lg.p("Operation event.startTimer - person->intcommuteTime + person->intshiftStartBias = ",
 						event.startTimer - person->intcommuteTime + person->intshiftStartBias);
 					event.logDetail(minsBefore, "startOn");
-					event.updateLastTriggeredEvent(person);
 					lg.i("Event triggered for ", person->u_name);
 					result = "startOn";
 					event.startOnDone = true;
@@ -398,7 +397,6 @@ string settings::calEventGroup::eventTimeCheck(int minsBefore, int minsAfter)
 					lg.p("Operation event.startTimer - person->intcommuteTime + person->intshiftStartBias = ",
 						event.startTimer - person->intcommuteTime + person->intshiftStartBias);
 					event.logDetail(minsAfter, "startOff");
-					event.updateLastTriggeredEvent(person);
 					lg.i("Event triggered for ", person->u_name);
 					result = "startOff";
 					event.startOffDone = true;
@@ -416,7 +414,6 @@ string settings::calEventGroup::eventTimeCheck(int minsBefore, int minsAfter)
 					lg.p("Operation event.startTimer - person->intcommuteTime + person->intshiftStartBias = ",
 						event.endTimer + person->intshiftEndBias);
 					event.logDetail(minsBefore, "endOn");
-					event.updateLastTriggeredEvent(person);
 					lg.i("Event triggered for ", person->u_name);
 					if (settings::u_shiftEndingsTriggerLight) {
 						result = "endOn";
@@ -439,7 +436,6 @@ string settings::calEventGroup::eventTimeCheck(int minsBefore, int minsAfter)
 					lg.p("Operation event.startTimer - person->intcommuteTime + person->intshiftStartBias = ",
 						event.endTimer + person->intshiftEndBias);
 					event.logDetail(minsAfter, "endOff");
-					event.updateLastTriggeredEvent(person);
 					lg.i("Event triggered for ", person->u_name);
 					if (settings::u_shiftEndingsTriggerLight) {
 						result = "endOff";

@@ -167,9 +167,6 @@ public:
 		bool endOffDone;
 
 
-		// Takes pointer to whom to update event for
-		void updateLastTriggeredEvent(settings* person);
-
 		// *******************************
 		void updateThisEventStat(settings::calEvent &event, settings* person);
 

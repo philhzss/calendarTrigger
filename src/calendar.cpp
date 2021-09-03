@@ -541,9 +541,11 @@ string settings::calEventGroup::verifyCanLightTurnOff(string action) {
 		}
 	}
 	if (blockLightFromTurningOff) {
+		lg.d("Verification result: Poweroff BLOCKED");
 		return "blocked";
 	}
 	else {
+		lg.d("Verification result: Poweroff allowed");
 		return action;
 	}
 }

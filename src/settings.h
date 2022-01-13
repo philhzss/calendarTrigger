@@ -186,8 +186,11 @@ public:
 		// Static methods
 		static string eventTimeCheck(int minsBefore, int minsAfter);
 		
+		// Update the global power-off blocking bool for API
+		static bool updateCanLightTurnOffBool();
+
 		// Check if any person is preventing light shut down
-		static string verifyCanLightTurnOff(string action);
+		static string verifyCanLightTurnOffAction(string action);
 
 		// Cleanup at end of program
 		static void cleanup();

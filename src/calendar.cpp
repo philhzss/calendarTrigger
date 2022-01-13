@@ -486,12 +486,12 @@ string settings::calEventGroup::eventTimeCheck(int minsBefore, int minsAfter)
 	else if (std::any_of(results.cbegin(), results.cend(), [](string anyResult) { return anyResult.find("startOff") != std::string::npos; }))
 	{
 		lg.d("At least one event is calling for startOff, verifying");
-		return verifyCanLightTurnOff("startOff");
+		return verifyCanLightTurnOffAction("startOff");
 	}
 	else if (std::any_of(results.cbegin(), results.cend(), [](string anyResult) { return anyResult.find("endOff") != std::string::npos; }))
 	{
 		lg.d("At least one event is calling for endOff, verifying");
-		return verifyCanLightTurnOff("endOff");
+		return verifyCanLightTurnOffAction("endOff");
 	}
 	// At this point, the vector is either empty or contains only duplicates
 	else if (std::any_of(results.cbegin(), results.cend(), [](string anyResult) { return anyResult.find("duplicate") != std::string::npos; }))
@@ -528,14 +528,19 @@ void settings::calEventGroup::cleanup()
 	settings::peopleActualInstances.clear();
 }
 
-string settings::calEventGroup::verifyCanLightTurnOff(string action) {
-	bool blockLightFromTurningOff = false;
+bool settings::calEventGroup::updateCanLightTurnOffBool() {
+	bool canLightTurnOff = true;
 	for (settings* person : settings::people) {
 		if (person->lightShouldBeOn) {
-			blockLightFromTurningOff = true;
+			canLightTurnOff = false;
 			break;
 		}
 	}
+	return canLightTurnOff;
+}
+
+string settings::calEventGroup::verifyCanLightTurnOffAction(string action) {
+	bool blockLightFromTurningOff = !updateCanLightTurnOffBool();
 	if (blockLightFromTurningOff) {
 		lg.d("Verification result: Poweroff BLOCKED");
 		return "blocked";

@@ -3,6 +3,10 @@
 #include "settings.h"
 #include <curl/curl.h>
 #include <unistd.h>
+#include <atomic>
+
+#define CROW_MAIN
+#include <crow.h>
 
 using std::string;
 
@@ -170,10 +174,26 @@ string garageLightCommand(string command)
 	return response;
 }
 
+void DoCrowAPI(std::atomic_bool &turnOffAllowed) {
+	crow::SimpleApp app; //define your crow application
+
+	//define your endpoint at the root directory
+	CROW_ROUTE(app, "/")([&turnOffAllowed]() {
+		crow::json::wvalue json;
+		json["api"]["canLightBeTurnedOff"] = lg.prepareOnly(turnOffAllowed);
+		return json;
+		});
+
+	//set the port, set the app to run on multiple threads, and run the app
+	app.port(3112).multithreaded().run();
+}
+
 int main()
 {
 	int mainLoopCounter = 1;
 	time_t launchTime = time(&nowTime_secs);
+	std::atomic <bool> canLightBeTurnedOff(true);
+	std::thread worker(DoCrowAPI, std::ref(canLightBeTurnedOff));
 	while (true)
 	{
 		lg.b("\n\n>>>>>>>------------------------------PROGRAM STARTS HERE (loop #", mainLoopCounter, ")----------------------------<<<<<<<");
@@ -207,17 +227,19 @@ int main()
 						}
 
 						actionToDo = settings::calEventGroup::eventTimeCheck(stoi(settings::u_minsBefore), stoi(settings::u_minsAfter));
+						// Once eventTimeCheck has run, person->lightShouldBeOn has run so we can update the API
+						canLightBeTurnedOff = settings::calEventGroup::updateCanLightTurnOffBool();
 						if (actionToDo != "")
 						{
 							lg.i("End of trigger loop, actionToBeDone is: ", actionToDo, " // waiting 10 secs (", return_current_time_and_date(), ")");
 							sleep(10);
 						}
 						for (settings* person : settings::people) {
-							if (person->lightShouldBeOn) 
+							if (person->lightShouldBeOn)
 							{
 								lg.d(person->u_name, "'s light should be ON right now. (lightShouldBeOn: ", person->lightShouldBeOn, ")");
 							}
-							else 
+							else
 							{
 								lg.d(person->u_name, "'s light should be off right now. (lightShouldBeOn: ", person->lightShouldBeOn, ")");
 							}

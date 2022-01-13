@@ -148,11 +148,14 @@
   </ItemGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
     <Link>
-      <AdditionalOptions>-lcurl %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>-lcurl -pthread -lboost_system %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <PreBuildEvent>
       <AdditionalSourcesToCopyMapping>$(ProjectDir)settings.json:=/home/pi/projects/calendarTrigger/bin/ARM/Debug/settings.json</AdditionalSourcesToCopyMapping>
     </PreBuildEvent>
+    <ClCompile>
+      <AdditionalIncludeDirectories>C:\Program Files\boost_1_66_0;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets" />

@@ -10,6 +10,8 @@
 
 using std::string;
 
+std::mutex mtx;
+
 static Log lg("Main", Log::LogLevel::Debug);
 
 time_t nowTime_secs = time(&nowTime_secs);
@@ -83,9 +85,12 @@ const string string_time_and_date(tm tstruct)
 
 void initAll()
 {
+	mtx.lock();
+	settings::calEventGroup::cleanup(); // always cleanup before anything
 	try {
 		InternetConnected();
 		settings::readSettings();
+		mtx.unlock();
 		nowTime_secs = time(&nowTime_secs); // update to current time
 		lg.b();
 		initiateCal();
@@ -93,7 +98,9 @@ void initAll()
 	catch (string e) {
 		lg.e("Error: ", e);
 		throw e;
+		mtx.unlock();
 	}
+	mtx.unlock();
 	return;
 }
 
@@ -180,7 +187,11 @@ void DoCrowAPI(std::vector<settings*>* people, string *minsBeforeTriggerOn,
 
 	//define your endpoint at the root directory
 	CROW_ROUTE(app, "/api")([&people, &minsBeforeTriggerOn, &minsAfterTriggerOff, &doShiftEndings]() {
-
+		while (!mtx.try_lock()) {
+			lg.d("Crow; Mutex locked waiting for unlock...");
+			sleep(0.2);
+		}
+		
 		crow::json::wvalue json;
 		lg.d("Crow HTTP request; Crow thread has ", people->size(), " people.");
 		json["app"]["minsBeforeTriggerOn"] = lg.prepareOnly(*minsBeforeTriggerOn);
@@ -197,8 +208,8 @@ void DoCrowAPI(std::vector<settings*>* people, string *minsBeforeTriggerOn,
 				["commuteTime"] = lg.prepareOnly(person->u_commuteTime);
 			json[lg.prepareOnly(person->u_name)]
 				["wordsToIgnore"] = person->ignoredWordsPrint();
-			
 		}
+		mtx.unlock();
 
 		return json;
 
@@ -215,7 +226,7 @@ int main()
 	time_t launchTime = time(&nowTime_secs);
 	std::atomic <bool> canLightBeTurnedOff(true);
 	std::thread worker(DoCrowAPI, 
-		&settings::people, 
+		&settings::people,
 		&settings::u_minsBefore,
 		&settings::u_minsAfter,
 		&settings::u_shiftEndingsTriggerLight);
@@ -233,7 +244,6 @@ int main()
 			while (true) // max tries loop
 			{
 				try {
-					settings::calEventGroup::cleanup(); // always cleanup
 					initAll();
 					lg.b();
 					do // Trigger loop

@@ -174,18 +174,39 @@ string garageLightCommand(string command)
 	return response;
 }
 
-void DoCrowAPI(std::atomic_bool &turnOffAllowed) {
+void DoCrowAPI(std::vector<settings*>* people, string *minsBeforeTriggerOn, 
+	string *minsAfterTriggerOff, bool *doShiftEndings) {
 	crow::SimpleApp app; //define your crow application
 
 	//define your endpoint at the root directory
-	CROW_ROUTE(app, "/")([&turnOffAllowed]() {
+	CROW_ROUTE(app, "/api")([&people, &minsBeforeTriggerOn, &minsAfterTriggerOff, &doShiftEndings]() {
+
 		crow::json::wvalue json;
-		json["api"]["canLightBeTurnedOff"] = lg.prepareOnly(turnOffAllowed);
+		lg.d("In Crow there are ", people->size(), " people.");
+		json["app"]["minsBeforeTriggerOn"] = lg.prepareOnly(*minsBeforeTriggerOn);
+		json["app"]["minsAfterTriggerOff"] = lg.prepareOnly(*minsAfterTriggerOff);
+		json["app"]["shiftEndingsTriggerLight"] = lg.prepareOnly(*doShiftEndings);
+		for (settings* person : *people) {
+			json[lg.prepareOnly(person->u_name)]
+				["lightShouldBeOn"] = lg.prepareOnly(person->lightShouldBeOn);
+			json[lg.prepareOnly(person->u_name)]
+				["shiftStartBias"] = lg.prepareOnly(person->u_shiftStartBias);
+			json[lg.prepareOnly(person->u_name)]
+				["shiftEndBias"] = lg.prepareOnly(person->u_shiftEndBias);
+			json[lg.prepareOnly(person->u_name)]
+				["commuteTime"] = lg.prepareOnly(person->u_commuteTime);
+			json[lg.prepareOnly(person->u_name)]
+				["wordsToIgnore"] = person->ignoredWordsPrint();
+			
+		}
+
 		return json;
+
 		});
 
 	//set the port, set the app to run on multiple threads, and run the app
 	app.port(3112).multithreaded().run();
+	// 3112 main port, 4112 test port to not interfere with running version
 }
 
 int main()
@@ -193,9 +214,14 @@ int main()
 	int mainLoopCounter = 1;
 	time_t launchTime = time(&nowTime_secs);
 	std::atomic <bool> canLightBeTurnedOff(true);
-	std::thread worker(DoCrowAPI, std::ref(canLightBeTurnedOff));
+	std::thread worker(DoCrowAPI, 
+		&settings::people, 
+		&settings::u_minsBefore,
+		&settings::u_minsAfter,
+		&settings::u_shiftEndingsTriggerLight);
 	while (true)
 	{
+		settings::calEventGroup::cleanup(); // always cleanup
 		lg.b("\n\n>>>>>>>------------------------------PROGRAM STARTS HERE (loop #", mainLoopCounter, ")----------------------------<<<<<<<");
 		nowTime_secs = time(&nowTime_secs); // update to current time
 		lg.i("Runtime date-time (this loop): " + return_current_time_and_date() + " LOCAL");
@@ -258,10 +284,8 @@ int main()
 						lg.e("ERROR ", count, " out of max ", maxTries, "!!! Stopping, reason ->\n", e);
 						return EXIT_FAILURE;
 					}
-					settings::calEventGroup::cleanup(); // always cleanup, except if internet not working
 				}
 			} // max tries loop
-			settings::calEventGroup::cleanup(); // always cleanup, except if internet not working
 		} // internet connected
 		else {
 			lg.i("\nProgram requires internet to run, will keep retrying.");

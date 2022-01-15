@@ -182,7 +182,7 @@ void DoCrowAPI(std::vector<settings*>* people, string *minsBeforeTriggerOn,
 	CROW_ROUTE(app, "/api")([&people, &minsBeforeTriggerOn, &minsAfterTriggerOff, &doShiftEndings]() {
 
 		crow::json::wvalue json;
-		lg.d("In Crow there are ", people->size(), " people.");
+		lg.d("Crow HTTP request; Crow thread has ", people->size(), " people.");
 		json["app"]["minsBeforeTriggerOn"] = lg.prepareOnly(*minsBeforeTriggerOn);
 		json["app"]["minsAfterTriggerOff"] = lg.prepareOnly(*minsAfterTriggerOff);
 		json["app"]["shiftEndingsTriggerLight"] = lg.prepareOnly(*doShiftEndings);
@@ -221,7 +221,6 @@ int main()
 		&settings::u_shiftEndingsTriggerLight);
 	while (true)
 	{
-		settings::calEventGroup::cleanup(); // always cleanup
 		lg.b("\n\n>>>>>>>------------------------------PROGRAM STARTS HERE (loop #", mainLoopCounter, ")----------------------------<<<<<<<");
 		nowTime_secs = time(&nowTime_secs); // update to current time
 		lg.i("Runtime date-time (this loop): " + return_current_time_and_date() + " LOCAL");
@@ -234,6 +233,7 @@ int main()
 			while (true) // max tries loop
 			{
 				try {
+					settings::calEventGroup::cleanup(); // always cleanup
 					initAll();
 					lg.b();
 					do // Trigger loop

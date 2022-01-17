@@ -181,15 +181,15 @@ public:
 
 	class calEventGroup
 	{
+	private:
+		// See if every person is allowing a light turn-off event
+		static bool updateCanLightTurnOffBool();
 	public:
 		std::vector<calEvent> myCalEvents;
 		std::vector<calEvent> myValidEvents;
 
 		// Static methods
 		static string eventTimeCheck(int minsBefore, int minsAfter);
-		
-		// Update the global power-off blocking bool for API
-		static bool updateCanLightTurnOffBool();
 
 		// Check if any person is preventing light shut down
 		static string verifyCanLightTurnOffAction(string action);

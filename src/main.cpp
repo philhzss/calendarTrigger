@@ -1,9 +1,7 @@
-#include "calendar.h"
 #include "utils.h"
 #include "settings.h"
 #include <curl/curl.h>
 #include <unistd.h>
-#include <atomic>
 
 #define CROW_MAIN
 #include <crow.h>
@@ -224,7 +222,6 @@ int main()
 {
 	int mainLoopCounter = 1;
 	time_t launchTime = time(&nowTime_secs);
-	std::atomic <bool> canLightBeTurnedOff(true);
 	std::thread worker(DoCrowAPI, 
 		&settings::people,
 		&settings::u_minsBefore,
@@ -263,8 +260,6 @@ int main()
 						}
 
 						actionToDo = settings::calEventGroup::eventTimeCheck(stoi(settings::u_minsBefore), stoi(settings::u_minsAfter));
-						// Once eventTimeCheck has run, person->lightShouldBeOn has run so we can update the API
-						canLightBeTurnedOff = settings::calEventGroup::updateCanLightTurnOffBool();
 						if (actionToDo != "")
 						{
 							lg.i("End of trigger loop, actionToBeDone is: ", actionToDo, " // waiting 10 secs (", return_current_time_and_date(), ")");

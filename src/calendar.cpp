@@ -1,4 +1,3 @@
-#include "calendar.h"
 #include "utils.h"
 #include "settings.h"
 #include <curl/curl.h>

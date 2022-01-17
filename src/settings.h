@@ -5,6 +5,8 @@
 using std::string;
 using json = nlohmann::json;
 
+void initiateCal();
+
 // Stores program settings, including but not limited to settings.json stuff
 class settings
 {

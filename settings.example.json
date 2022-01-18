@@ -3,26 +3,26 @@
     "lightURL": "link to API / light url",
     "minsBeforeTrigger": "10",
     "minsAfterTrigger": "10",
-    "shiftEndingsTriggerLight": false
+    "hoursFutureLookAhead": "744",
+    "shiftEndingsTriggerLight": false,
+    "apiPort": "3112"
   },
   "people": {
-    "person1": [
-      {
-        "calendarURL": "link to calendar ics",
-        "shiftStartBias": "0",
-        "shiftEndBias": "0",
-        "commuteTime": "45",
-        "wordsToIgnore": []
-      }
-    ],
-    "person2": [
-      {
-        "calendarURL": "link to calendar ics",
-        "shiftStartBias": "0",
-        "shiftEndBias": "-30",
-        "commuteTime": "30",
-        "wordsToIgnore": [ "Leave", "Spare" ]
-      }
-    ]
+    "person1": {
+      "calendarURL": "link to calendar ics",
+      "name": "YourName",
+      "shiftStartBias": "0",
+      "shiftEndBias": "0",
+      "commuteTime": "45",
+      "wordsToIgnore": []
+    },
+    "person2": {
+      "calendarURL": "link to calendar ics",
+      "name": "YourOtherName",
+      "shiftStartBias": "0",
+      "shiftEndBias": "-30",
+      "commuteTime": "30",
+      "wordsToIgnore": [ "Leave", "Spare" ]
+    }
   }
 }

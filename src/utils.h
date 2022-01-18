@@ -12,7 +12,7 @@ using std::string;
 size_t WriteCallback(void* contents, size_t size, size_t nmemb, void* userp);
 string curl_GET(string url);
 extern time_t nowTime_secs;
-const string string_time_and_date(tm tstruct);
+const string string_time_and_date(tm tstruct, bool printLocal = true);
 const string return_current_time_and_date(time_t& time_to_return = nowTime_secs);
 
 string get_str_between_two_str(const string& s,

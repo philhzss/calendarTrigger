@@ -345,8 +345,9 @@ void settings::calEvent::removePastEvents(settings* person)
 }
 
 // Check if any start-end event is valid, and return appropriate string based on timers
-string settings::calEventGroup::eventTimeCheck(int minsBefore, int minsAfter)
+string settings::calEventGroup::eventTimeCheck(int minsBefore, int minsAfter, int hoursFuture)
 {
+	int futureMins = 60 * hoursFuture;
 	string result;
 	std::vector<string> results;
 	for (settings* person : settings::people)
@@ -369,9 +370,23 @@ string settings::calEventGroup::eventTimeCheck(int minsBefore, int minsAfter)
 			bool operationEndOff = operationShiftEnd <= -minsAfter && operationShiftEnd > -minsAfter - 4;
 
 			// Everything doesnt work because operation Shift Start ends and then kicks us out of the main loop :(
+			// ???
+
+			// Test for events within futureMins to update FutureEvents vector
+			bool futureEventStart = operationShiftStart <= futureMins && operationShiftStart > 0;
+			bool futureEventEnd = operationShiftEnd <= futureMins && operationShiftEnd > 0;
+
+			// For a given event, start is always before end (duh) so we can test for start ELSE end. To avoid double events
+			if (futureEventStart)
+			{
+				person->allEvents.myFutureEvents.push_back(event);
+			}
+			else if (futureEventEnd) {
+				person->allEvents.myFutureEvents.push_back(event);
+			}
+
 
 			result = "fresh"; // Must be reset each loop or stays the same for all following events until overwritten again!!
-
 			if (operationStartOn)
 			{
 				if (!event.startOnDone) // make sure this event hasn't be triggered before
@@ -470,6 +485,7 @@ string settings::calEventGroup::eventTimeCheck(int minsBefore, int minsAfter)
 			}
 		}
 		lg.i("No further events triggered for calendar: ", person->u_name);
+		person->allEvents.updateNextFutureEvent(hoursFuture);
 	}
 	// Parse all the results to choose what to do
 	if (std::any_of(results.cbegin(), results.cend(), [](string anyResult) { return anyResult.find("startOn") != std::string::npos; }))
@@ -525,6 +541,38 @@ void settings::calEventGroup::cleanup()
 {
 	settings::people.clear();
 	settings::peopleActualInstances.clear();
+}
+
+void settings::calEventGroup::updateNextFutureEvent(int hoursFuture) {
+	int earliestEventStart = hoursFuture * 60; // init value
+	int earliestEventEnd = earliestEventStart;
+	tm determinedNextEvent; // the start or the end, depennding on what triggers
+	bool eventIsAnEnd = false;
+	lg.d("We have ", this->myFutureEvents.size(), " events for this person within the next ", u_hoursFutureLookAhead, " hours.");
+
+	for (calEvent& event : this->myFutureEvents) {
+		if ((event.startTimer < 0) && (event.endTimer > 0)) {
+			lg.d("!!!Negative startTimer and positive endTimer, we are during an event.");
+			determinedNextEvent = event.end; // The next is therefor the end
+			eventIsAnEnd = true;
+		}
+	}
+
+	if (eventIsAnEnd) {
+		// We are done, go to end
+	}
+	else {
+		// If here, next event should be a startTimer event
+		for (calEvent& event : this->myFutureEvents) {
+			if ((event.startTimer < earliestEventStart) && (event.startTimer > 0)) {
+				earliestEventStart = event.startTimer;
+				determinedNextEvent = event.start;
+				lg.d("Event Start Matches: ", string_time_and_date(event.start));
+			}
+		}
+	}
+	lg.i("Next event (future) determined to be next: ", string_time_and_date(determinedNextEvent));
+	this->nextFutureEvent = string_time_and_date(determinedNextEvent, false);
 }
 
 bool settings::calEventGroup::updateCanLightTurnOffBool() {

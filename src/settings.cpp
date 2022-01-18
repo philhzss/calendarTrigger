@@ -14,6 +14,8 @@ std::vector<settings> settings::peopleActualInstances;
 string settings::u_lightURL;
 string settings::u_minsBefore;
 string settings::u_minsAfter;
+string settings::u_hoursFutureLookAhead;
+int settings::u_apiPort;
 bool settings::u_shiftEndingsTriggerLight;
 
 
@@ -29,7 +31,10 @@ void settings::readSettings(string silent)
 		u_lightURL = generalSettings["lightURL"];
 		u_minsBefore = generalSettings["minsBeforeTrigger"];
 		u_minsAfter = generalSettings["minsAfterTrigger"];
+		u_hoursFutureLookAhead = generalSettings["hoursFutureLookAhead"];
 		u_shiftEndingsTriggerLight = generalSettings["shiftEndingsTriggerLight"];
+		string api = generalSettings["apiPort"];
+		u_apiPort = std::stoi(api);
 
 		// Figure out how many people we have
 		int peopleFound = 0;

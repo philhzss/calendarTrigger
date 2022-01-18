@@ -8,11 +8,11 @@
 
 using std::string;
 
-std::mutex mtx;
-
 static Log lg("Main", Log::LogLevel::Debug);
 
+
 time_t nowTime_secs = time(&nowTime_secs);
+std::mutex settings::settingsMutex;
 
 // Make sure internet connection works
 bool InternetConnected() {
@@ -72,23 +72,22 @@ const string return_current_time_and_date(time_t& time_to_return)
 	strftime(buf, sizeof(buf), "%Y-%m-%d %X", &tstruct);
 	return buf;
 }
-const string string_time_and_date(tm tstruct)
+const string string_time_and_date(tm tstruct, bool printLocal)
 {
 	time_t tempSeconds = mktime(&tstruct) - timezone;
 	tm localStruct = *localtime(&tempSeconds);
 	char buf[80];
-	strftime(buf, sizeof(buf), "%Y-%m-%d %R Local", &localStruct);
+	const char* printString = (printLocal) ? "%Y-%m-%d %R Local" : "%Y-%m-%d %R";
+	strftime(buf, sizeof(buf), printString, &localStruct);
 	return buf;
 }
 
 void initAll()
 {
-	mtx.lock();
 	settings::calEventGroup::cleanup(); // always cleanup before anything
 	try {
 		InternetConnected();
 		settings::readSettings();
-		mtx.unlock();
 		nowTime_secs = time(&nowTime_secs); // update to current time
 		lg.b();
 		initiateCal();
@@ -96,9 +95,7 @@ void initAll()
 	catch (string e) {
 		lg.e("Error: ", e);
 		throw e;
-		mtx.unlock();
 	}
-	mtx.unlock();
 	return;
 }
 
@@ -179,17 +176,17 @@ string garageLightCommand(string command)
 	return response;
 }
 
-void DoCrowAPI(std::vector<settings*>* people, string *minsBeforeTriggerOn, 
-	string *minsAfterTriggerOff, bool *doShiftEndings) {
+void DoCrowAPI(std::vector<settings*>* people, string* minsBeforeTriggerOn,
+	string* minsAfterTriggerOff, bool* doShiftEndings) {
 	crow::SimpleApp app; //define your crow application
 
 	//define your endpoint at the root directory
 	CROW_ROUTE(app, "/api")([&people, &minsBeforeTriggerOn, &minsAfterTriggerOff, &doShiftEndings]() {
-		while (!mtx.try_lock()) {
+		while (!settings::settingsMutex.try_lock()) {
 			lg.d("Crow; Mutex locked waiting for unlock...");
 			sleep(0.2);
 		}
-		
+
 		crow::json::wvalue json;
 		lg.d("Crow HTTP request; Crow thread has ", people->size(), " people.");
 		json["app"]["minsBeforeTriggerOn"] = lg.prepareOnly(*minsBeforeTriggerOn);
@@ -199,6 +196,8 @@ void DoCrowAPI(std::vector<settings*>* people, string *minsBeforeTriggerOn,
 			json[lg.prepareOnly(person->u_name)]
 				["lightShouldBeOn"] = lg.prepareOnly(person->lightShouldBeOn);
 			json[lg.prepareOnly(person->u_name)]
+				["nextEvent"] = lg.prepareOnly(person->allEvents.nextFutureEvent);
+			json[lg.prepareOnly(person->u_name)]
 				["shiftStartBias"] = lg.prepareOnly(person->u_shiftStartBias);
 			json[lg.prepareOnly(person->u_name)]
 				["shiftEndBias"] = lg.prepareOnly(person->u_shiftEndBias);
@@ -207,22 +206,23 @@ void DoCrowAPI(std::vector<settings*>* people, string *minsBeforeTriggerOn,
 			json[lg.prepareOnly(person->u_name)]
 				["wordsToIgnore"] = person->ignoredWordsPrint();
 		}
-		mtx.unlock();
+		settings::settingsMutex.unlock();
 
 		return json;
 
 		});
 
 	//set the port, set the app to run on multiple threads, and run the app
-	app.port(3112).multithreaded().run();
+	app.port(settings::u_apiPort).multithreaded().run();
 	// 3112 main port, 4112 test port to not interfere with running version
 }
 
 int main()
 {
+	settings::readSettings(); // Must get API port before Crow API
 	int mainLoopCounter = 1;
 	time_t launchTime = time(&nowTime_secs);
-	std::thread worker(DoCrowAPI, 
+	std::thread worker(DoCrowAPI,
 		&settings::people,
 		&settings::u_minsBefore,
 		&settings::u_minsAfter,
@@ -241,6 +241,7 @@ int main()
 			while (true) // max tries loop
 			{
 				try {
+					settings::settingsMutex.lock();
 					initAll();
 					lg.b();
 					do // Trigger loop
@@ -259,7 +260,8 @@ int main()
 							lg.i("Command poweroff sent to device, result: ", result);
 						}
 
-						actionToDo = settings::calEventGroup::eventTimeCheck(stoi(settings::u_minsBefore), stoi(settings::u_minsAfter));
+						actionToDo = settings::calEventGroup::eventTimeCheck(stoi(settings::u_minsBefore), stoi(settings::u_minsAfter), stoi(settings::u_hoursFutureLookAhead));
+						settings::settingsMutex.unlock();
 						if (actionToDo != "")
 						{
 							lg.i("End of trigger loop, actionToBeDone is: ", actionToDo, " // waiting 10 secs (", return_current_time_and_date(), ")");

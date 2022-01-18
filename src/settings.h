@@ -1,6 +1,7 @@
 #pragma once
 #include <nlohmann/json.hpp>
 #include <fstream>
+#include <mutex>
 
 using std::string;
 using json = nlohmann::json;
@@ -60,6 +61,9 @@ public:
 	// General Setting
 	// How many mins after a triggertime (event start or end) to turn off device
 	static string u_minsAfter;
+	// General Setting
+	// How many hours in future to look for nextEvent (mostly for API)
+	static string u_hoursFutureLookAhead;
 	// General Setting
 	// If false, ignore shift endings when scanning for events
 	static bool u_shiftEndingsTriggerLight;
@@ -130,9 +134,15 @@ public:
 	static string u_teslaClientSecret;
 
 
-	// Trigger storage
+	// API
 	// Should lights currently be on for this person
 	bool lightShouldBeOn;
+	// API
+	// Mutex lock for reading and clearing the settings file
+	static std::mutex settingsMutex;
+	// API
+	// API Port for webserver, must restart app to change
+	static int u_apiPort;
 
 
 
@@ -184,12 +194,20 @@ public:
 	private:
 		// See if every person is allowing a light turn-off event
 		static bool updateCanLightTurnOffBool();
+
+		// Using the myFutureEvents vector find which event is next for API
+		void updateNextFutureEvent(int hoursFuture);
+
+		std::vector<calEvent> myFutureEvents; // Within prefined timeframe
 	public:
 		std::vector<calEvent> myCalEvents;
 		std::vector<calEvent> myValidEvents;
 
+		// Here because it is extracted from the eventGroup, not part of each event
+		string nextFutureEvent;
+
 		// Static methods
-		static string eventTimeCheck(int minsBefore, int minsAfter);
+		static string eventTimeCheck(int minsBefore, int minsAfter, int hoursFuture);
 
 		// Check if any person is preventing light shut down
 		static string verifyCanLightTurnOffAction(string action);

@@ -9,6 +9,7 @@
 using std::string;
 
 static Log lg("Main", Log::LogLevel::Debug);
+static Log lgC("Crow", Log::LogLevel::Debug);
 
 
 time_t nowTime_secs = time(&nowTime_secs);
@@ -182,13 +183,19 @@ void DoCrowAPI(std::vector<settings*>* people, string* minsBeforeTriggerOn,
 
 	//define your endpoint at the root directory
 	CROW_ROUTE(app, "/api")([&people, &minsBeforeTriggerOn, &minsAfterTriggerOff, &doShiftEndings]() {
+		crow::json::wvalue json;
+
+		int counter = 0;
 		while (!settings::settingsMutex.try_lock()) {
-			lg.d("Crow; Mutex locked waiting for unlock...");
-			sleep(0.2);
+			lgC.d("Waiting Crow request; Mutex locked, have looped ", counter, " times.");
+			std::this_thread::sleep_for(std::chrono::milliseconds(200));
+			counter++;
+			if (counter >= 50) {
+				return json["app"] = "ERROR";
+			}
 		}
 
-		crow::json::wvalue json;
-		lg.d("Crow HTTP request; Crow thread has ", people->size(), " people.");
+		lgC.d("Crow HTTP request; Crow thread has ", people->size(), " people.");
 		json["app"]["minsBeforeTriggerOn"] = lg.prepareOnly(*minsBeforeTriggerOn);
 		json["app"]["minsAfterTriggerOff"] = lg.prepareOnly(*minsAfterTriggerOff);
 		json["app"]["shiftEndingsTriggerLight"] = lg.prepareOnly(*doShiftEndings);
@@ -236,6 +243,7 @@ int main()
 		string actionToDo;
 		int count = 0;
 		int maxTries = 10;
+		settings::settingsMutex.unlock(); // make sure it is unlocked
 		if (InternetConnected())
 		{
 			while (true) // max tries loop
@@ -281,6 +289,7 @@ int main()
 					break; // Must exit maxTries loop if no error caught
 				}
 				catch (string e) {
+					settings::settingsMutex.unlock(); // Make sure it doesnt stay locked
 					bool internetConnectedAfterError = InternetConnected();
 					lg.e("Critical failure: ", e);
 					lg.e("Failure #", count, ", waiting 1 min and retrying.");

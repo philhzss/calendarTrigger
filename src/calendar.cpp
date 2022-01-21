@@ -558,7 +558,12 @@ void settings::calEventGroup::updateNextFutureEvent(int hoursFuture, settings* p
 			lg.d("minsTilTrigger is ", minsTilTrigger);
 			tm nextEventTriggerTm = determinedNextEvent;
 			AddTime(minsTilTrigger, &nextEventTriggerTm);
-			this->nextFutureTrigger = string_time_and_date(nextEventTriggerTm, false);
+			tm nextEventTriggerTmON = nextEventTriggerTm;
+			tm nextEventTriggerTmOFF = nextEventTriggerTm;
+			AddTime(-std::stoi(settings::u_minsBefore), &nextEventTriggerTmON);
+			this->nextFutureTriggerON = string_time_and_date(nextEventTriggerTmON, false);
+			AddTime(std::stoi(settings::u_minsAfter), &nextEventTriggerTmOFF);
+			this->nextFutureTriggerOFF = string_time_and_date(nextEventTriggerTmOFF, false);
 			eventIsAnEnd = true;
 		}
 	}
@@ -575,7 +580,12 @@ void settings::calEventGroup::updateNextFutureEvent(int hoursFuture, settings* p
 				int minsTilTrigger = person->getOperationShiftStart(event) - event.startTimer;
 				tm nextEventTriggerTm = determinedNextEvent;
 				AddTime(minsTilTrigger, &nextEventTriggerTm);
-				this->nextFutureTrigger = string_time_and_date(nextEventTriggerTm, false);
+				tm nextEventTriggerTmON = nextEventTriggerTm;
+				tm nextEventTriggerTmOFF = nextEventTriggerTm;
+				AddTime(-std::stoi(settings::u_minsBefore), &nextEventTriggerTmON);
+				this->nextFutureTriggerON = string_time_and_date(nextEventTriggerTmON, false);
+				AddTime(std::stoi(settings::u_minsAfter), &nextEventTriggerTmOFF);
+				this->nextFutureTriggerOFF = string_time_and_date(nextEventTriggerTmOFF, false);
 				lg.d("Event Start Matches: ", string_time_and_date(event.start));
 			}
 		}

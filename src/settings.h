@@ -215,7 +215,8 @@ public:
 		string nextFutureEvent;
 
 		// Basically nextFutureEvent + or - the trigger timers
-		string nextFutureTrigger;
+		string nextFutureTriggerON;
+		string nextFutureTriggerOFF;
 
 		// Static methods
 		static string eventTimeCheck(int minsBefore, int minsAfter, int hoursFuture);

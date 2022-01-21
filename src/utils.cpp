@@ -160,3 +160,8 @@ inline void Log::toFile(string message) {
 	ofs.close();
 }
 
+void AddTime(int minutes, tm* date) {
+	if (date == NULL) return;
+	date->tm_min += minutes;
+	mktime(date);
+}

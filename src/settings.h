@@ -12,6 +12,14 @@ void initiateCal();
 class settings
 {
 public:
+	class calEvent;
+private:
+
+	// Operations for calculating On and Off times
+	int getOperationShiftStart(settings::calEvent eventToCalc);
+	int getOperationShiftEnd(settings::calEvent eventToCalc);
+
+public:
 	// Initial breakdown into separate json objects
 	static json teslaSettings, calendarSettings, generalSettings, carSettings, peopleSettings;
 	static std::vector<settings*> people;
@@ -196,7 +204,7 @@ public:
 		static bool updateCanLightTurnOffBool();
 
 		// Using the myFutureEvents vector find which event is next for API
-		void updateNextFutureEvent(int hoursFuture);
+		void updateNextFutureEvent(int hoursFuture, settings* person);
 
 		std::vector<calEvent> myFutureEvents; // Within prefined timeframe
 	public:
@@ -205,6 +213,9 @@ public:
 
 		// Here because it is extracted from the eventGroup, not part of each event
 		string nextFutureEvent;
+
+		// Basically nextFutureEvent + or - the trigger timers
+		string nextFutureTrigger;
 
 		// Static methods
 		static string eventTimeCheck(int minsBefore, int minsAfter, int hoursFuture);

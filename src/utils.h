@@ -14,7 +14,7 @@ string curl_GET(string url);
 extern time_t nowTime_secs;
 const string string_time_and_date(tm tstruct, bool printLocal = true);
 const string return_current_time_and_date(time_t& time_to_return = nowTime_secs);
-
+void AddTime(int minutes, tm* date);
 string get_str_between_two_str(const string& s,
 	const std::string& start_delim,
 	const std::string& stop_delim);

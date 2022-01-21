@@ -360,8 +360,8 @@ string settings::calEventGroup::eventTimeCheck(int minsBefore, int minsAfter, in
 			We must stop searching for the trigger after a certain time otherwise we'll stay stuck in the loop
 			with negative end/start timers forever. Using the minsAfter - a few extra mins should work*/
 			int operationLengthBuffer = 1.5 * (stoi(settings::u_minsAfter) + stoi(settings::u_minsBefore));
-			int operationShiftStart = event.startTimer - person->intcommuteTime + person->intshiftStartBias;
-			int operationShiftEnd = event.endTimer + person->intcommuteTime + person->intshiftEndBias;
+			int operationShiftStart = person->getOperationShiftStart(event);
+			int operationShiftEnd = person->getOperationShiftEnd(event);
 			bool operationStartOn = operationShiftStart <= minsBefore && operationShiftStart > 0;
 			bool operationStartHold = operationShiftStart <= minsBefore && operationShiftStart > -minsAfter && operationShiftStart > -operationLengthBuffer;
 			bool operationStartOff = operationShiftStart <= -minsAfter && operationShiftStart > -minsAfter - 4;
@@ -485,7 +485,7 @@ string settings::calEventGroup::eventTimeCheck(int minsBefore, int minsAfter, in
 			}
 		}
 		lg.i("No further events triggered for calendar: ", person->u_name);
-		person->allEvents.updateNextFutureEvent(hoursFuture);
+		person->allEvents.updateNextFutureEvent(hoursFuture, person);
 	}
 	// Parse all the results to choose what to do
 	if (std::any_of(results.cbegin(), results.cend(), [](string anyResult) { return anyResult.find("startOn") != std::string::npos; }))
@@ -543,7 +543,7 @@ void settings::calEventGroup::cleanup()
 	settings::peopleActualInstances.clear();
 }
 
-void settings::calEventGroup::updateNextFutureEvent(int hoursFuture) {
+void settings::calEventGroup::updateNextFutureEvent(int hoursFuture, settings* person) {
 	int earliestEventStart = hoursFuture * 60; // init value
 	int earliestEventEnd = earliestEventStart;
 	tm determinedNextEvent; // the start or the end, depennding on what triggers
@@ -554,6 +554,11 @@ void settings::calEventGroup::updateNextFutureEvent(int hoursFuture) {
 		if ((event.startTimer < 0) && (event.endTimer > 0)) {
 			lg.d("!!!Negative startTimer and positive endTimer, we are during an event.");
 			determinedNextEvent = event.end; // The next is therefor the end
+			int minsTilTrigger = person->getOperationShiftEnd(event) - event.endTimer;
+			lg.d("minsTilTrigger is ", minsTilTrigger);
+			tm nextEventTriggerTm = determinedNextEvent;
+			AddTime(minsTilTrigger, &nextEventTriggerTm);
+			this->nextFutureTrigger = string_time_and_date(nextEventTriggerTm, false);
 			eventIsAnEnd = true;
 		}
 	}
@@ -567,6 +572,10 @@ void settings::calEventGroup::updateNextFutureEvent(int hoursFuture) {
 			if ((event.startTimer < earliestEventStart) && (event.startTimer > 0)) {
 				earliestEventStart = event.startTimer;
 				determinedNextEvent = event.start;
+				int minsTilTrigger = person->getOperationShiftStart(event) - event.startTimer;
+				tm nextEventTriggerTm = determinedNextEvent;
+				AddTime(minsTilTrigger, &nextEventTriggerTm);
+				this->nextFutureTrigger = string_time_and_date(nextEventTriggerTm, false);
 				lg.d("Event Start Matches: ", string_time_and_date(event.start));
 			}
 		}

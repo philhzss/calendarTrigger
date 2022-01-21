@@ -131,3 +131,13 @@ string settings::ignoredWordsPrint()
 	}
 	return stream.str();
 }
+
+int settings::getOperationShiftStart(settings::calEvent eventToCalc) {
+	int calculatedShiftStart = eventToCalc.startTimer - this->intcommuteTime + this->intshiftStartBias;
+	return calculatedShiftStart;
+}
+
+int settings::getOperationShiftEnd(settings::calEvent eventToCalc) {
+	int calculatedShiftEnd = eventToCalc.endTimer + this->intcommuteTime + this->intshiftEndBias;
+	return calculatedShiftEnd;
+}

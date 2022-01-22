@@ -550,6 +550,14 @@ void settings::calEventGroup::updateNextFutureEvent(int hoursFuture, settings* p
 	bool eventIsAnEnd = false;
 	lg.d("We have ", this->myFutureEvents.size(), " events for this person within the next ", u_hoursFutureLookAhead, " hours.");
 
+	if (this->myFutureEvents.size() == 0) {
+		// No future events within range
+		this->nextFutureEvent = "None within range";
+		this->nextFutureTriggerON = "None within range";
+		this->nextFutureTriggerOFF = "None within range";
+		return;
+	}
+
 	for (calEvent& event : this->myFutureEvents) {
 		if ((event.startTimer <= 0) && (event.endTimer > 0)) {
 			lg.d("!!!Negative startTimer and positive endTimer, we are during an event.");

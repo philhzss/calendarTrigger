@@ -551,7 +551,7 @@ void settings::calEventGroup::updateNextFutureEvent(int hoursFuture, settings* p
 	lg.d("We have ", this->myFutureEvents.size(), " events for this person within the next ", u_hoursFutureLookAhead, " hours.");
 
 	for (calEvent& event : this->myFutureEvents) {
-		if ((event.startTimer < 0) && (event.endTimer > 0)) {
+		if ((event.startTimer <= 0) && (event.endTimer > 0)) {
 			lg.d("!!!Negative startTimer and positive endTimer, we are during an event.");
 			determinedNextEvent = event.end; // The next is therefor the end
 			int minsTilTrigger = person->getOperationShiftEnd(event) - event.endTimer;

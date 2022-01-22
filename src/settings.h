@@ -213,6 +213,7 @@ public:
 
 		// Here because it is extracted from the eventGroup, not part of each event
 		string nextFutureEvent;
+		string nextFutureEventType; // start or end
 
 		// Basically nextFutureEvent + or - the trigger timers
 		string nextFutureTriggerON;

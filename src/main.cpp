@@ -202,12 +202,14 @@ void DoCrowAPI(std::vector<settings*>* people, string* minsBeforeTriggerOn,
 		for (settings* person : *people) {
 			json[lg.prepareOnly(person->u_name)]
 				["lightShouldBeOn"] = lg.prepareOnly(person->lightShouldBeOn);
-			json[lg.prepareOnly(person->u_name)]
-				["nextEvent"] = lg.prepareOnly(person->allEvents.nextFutureEvent);
-			json[lg.prepareOnly(person->u_name)]
-				["nextTriggerOn"] = lg.prepareOnly(person->allEvents.nextFutureTriggerON);
-			json[lg.prepareOnly(person->u_name)]
-				["nextTriggerOff"] = lg.prepareOnly(person->allEvents.nextFutureTriggerOFF);
+			json[lg.prepareOnly(person->u_name)]["nextEvent"]
+				["time"] = lg.prepareOnly(person->allEvents.nextFutureEvent);
+			json[lg.prepareOnly(person->u_name)]["nextEvent"]
+				["type"] = lg.prepareOnly(person->allEvents.nextFutureEventType);
+			json[lg.prepareOnly(person->u_name)]["nextEvent"]
+				["triggerOn"] = lg.prepareOnly(person->allEvents.nextFutureTriggerON);
+			json[lg.prepareOnly(person->u_name)]["nextEvent"]
+				["triggerOff"] = lg.prepareOnly(person->allEvents.nextFutureTriggerOFF);
 			json[lg.prepareOnly(person->u_name)]
 				["shiftStartBias"] = lg.prepareOnly(person->u_shiftStartBias);
 			json[lg.prepareOnly(person->u_name)]

@@ -553,8 +553,9 @@ void settings::calEventGroup::updateNextFutureEvent(int hoursFuture, settings* p
 	if (this->myFutureEvents.size() == 0) {
 		// No future events within range
 		this->nextFutureEvent = "None within range";
-		this->nextFutureTriggerON = "None within range";
-		this->nextFutureTriggerOFF = "None within range";
+		this->nextFutureTriggerON = "None";
+		this->nextFutureTriggerOFF = "None";
+		this->nextFutureEventType = "None";
 		return;
 	}
 
@@ -573,6 +574,7 @@ void settings::calEventGroup::updateNextFutureEvent(int hoursFuture, settings* p
 			AddTime(std::stoi(settings::u_minsAfter), &nextEventTriggerTmOFF);
 			this->nextFutureTriggerOFF = string_time_and_date(nextEventTriggerTmOFF, false);
 			eventIsAnEnd = true;
+			this->nextFutureEventType = "ShiftEnd";
 		}
 	}
 
@@ -594,6 +596,7 @@ void settings::calEventGroup::updateNextFutureEvent(int hoursFuture, settings* p
 				this->nextFutureTriggerON = string_time_and_date(nextEventTriggerTmON, false);
 				AddTime(std::stoi(settings::u_minsAfter), &nextEventTriggerTmOFF);
 				this->nextFutureTriggerOFF = string_time_and_date(nextEventTriggerTmOFF, false);
+				this->nextFutureEventType = "ShiftStart";
 				lg.d("Event Start Matches: ", string_time_and_date(event.start));
 			}
 		}

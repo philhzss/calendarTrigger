@@ -352,6 +352,7 @@ string settings::calEventGroup::eventTimeCheck(int minsBefore, int minsAfter, in
 	std::vector<string> results;
 	for (settings* person : settings::people)
 	{
+		person->allEvents.myFutureEvents.clear();
 		// Verify if any event timer is coming up soon (within the defined timer parameter) return action
 		for (calEvent& event : person->allEvents.myValidEvents)
 		{

@@ -95,6 +95,7 @@ void initAll()
 	}
 	catch (string e) {
 		lg.e("Error: ", e);
+
 		throw e;
 	}
 	return;
@@ -257,6 +258,7 @@ int main()
 				try {
 					settings::settingsMutex.lock();
 					initAll();
+					settings::settingsMutex.unlock();
 					lg.b();
 					do // Trigger loop
 					{
@@ -273,7 +275,7 @@ int main()
 							string result = garageLightCommand("poweroff");
 							lg.i("Command poweroff sent to device, result: ", result);
 						}
-
+						settings::settingsMutex.lock();
 						actionToDo = settings::calEventGroup::eventTimeCheck(stoi(settings::u_minsBefore), stoi(settings::u_minsAfter), stoi(settings::u_hoursFutureLookAhead));
 						settings::settingsMutex.unlock();
 						if (actionToDo != "")

@@ -186,15 +186,10 @@ void DoCrowAPI(std::vector<settings*>* people, string* minsBeforeTriggerOn,
 	CROW_ROUTE(app, "/api")([&people, &minsBeforeTriggerOn, &minsAfterTriggerOff, &doShiftEndings]() {
 		crow::json::wvalue json;
 
-		int counter = 0;
-		while (!settings::settingsMutex.try_lock()) {
-			lgC.d("Waiting Crow request; Mutex locked, have looped ", counter, " times.");
-			std::this_thread::sleep_for(std::chrono::milliseconds(200));
-			counter++;
-			if (counter >= 50) {
-				return json["app"] = "ERROR";
-			}
+		if (!settings::settingsMutexUnlockSuccess()) {
+			return json["app"] = "ERROR";
 		}
+		lg.d("!!!CROW: MUTEX LOCKED!!!");
 
 		lgC.d("Crow HTTP request; Crow thread has ", people->size(), " people.");
 		json["app"]["minsBeforeTriggerOn"] = lg.prepareOnly(*minsBeforeTriggerOn);
@@ -221,7 +216,7 @@ void DoCrowAPI(std::vector<settings*>* people, string* minsBeforeTriggerOn,
 				["wordsToIgnore"] = person->ignoredWordsPrint();
 		}
 		settings::settingsMutex.unlock();
-
+		lg.d("CROW: MUTEX UNLOCKED -- returning Crow request");
 		return json;
 
 		});
@@ -250,20 +245,36 @@ int main()
 		string actionToDo;
 		int count = 0;
 		int maxTries = 10;
-		settings::settingsMutex.unlock(); // make sure it is unlocked
 		if (InternetConnected())
 		{
 			while (true) // max tries loop
 			{
 				try {
-					settings::settingsMutex.lock();
+					if (!settings::settingsMutexUnlockSuccess()) {
+						throw "Mutex timeout in main thread (before initAll)";
+					}
+					lg.d("!!!MAIN: MUTEX LOCKED (before initAll)!!!");
+					// Thread safe
 					initAll();
+					// Thread safe
 					settings::settingsMutex.unlock();
-					lg.b();
+					lg.d("MAIN: MUTEX UNLOCKED (after initAll)");
+					std::this_thread::sleep_for(std::chrono::milliseconds(100));
 					do // Trigger loop
 					{
 						nowTime_secs = time(&nowTime_secs); // update to current time
+						
+						if (!settings::settingsMutexUnlockSuccess()) {
+							throw "Mutex timeout in main thread (before initAll)";
+						}
+						lg.d("!!!MAIN: MUTEX LOCKED (before updateValidEventTimers)!!!");
+						// Thread safe
 						settings::calEvent::updateValidEventTimers();
+						// Thread safe
+						settings::settingsMutex.unlock();
+						lg.d("MAIN: MUTEX UNLOCKED (after updateValidEventTimers)");
+						std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
 
 						if (actionToDo == "startOn" || actionToDo == "endOn")
 						{
@@ -275,9 +286,18 @@ int main()
 							string result = garageLightCommand("poweroff");
 							lg.i("Command poweroff sent to device, result: ", result);
 						}
-						settings::settingsMutex.lock();
+
+						if (!settings::settingsMutexUnlockSuccess()) {
+							throw "Mutex timeout in main thread (inside triggerLoop)";
+						}
+						lg.d("!!!MAIN: MUTEX LOCKED (before eventTimeCheck)!!!");
+						// Thread safe
 						actionToDo = settings::calEventGroup::eventTimeCheck(stoi(settings::u_minsBefore), stoi(settings::u_minsAfter), stoi(settings::u_hoursFutureLookAhead));
+						// Thread safe
 						settings::settingsMutex.unlock();
+						lg.d("MAIN: MUTEX UNLOCKED (after eventTimeCheck)");
+
+
 						if (actionToDo != "")
 						{
 							lg.i("End of trigger loop, actionToBeDone is: ", actionToDo, " // waiting 10 secs (", return_current_time_and_date(), ")");
@@ -297,7 +317,12 @@ int main()
 					break; // Must exit maxTries loop if no error caught
 				}
 				catch (string e) {
-					settings::settingsMutex.unlock(); // Make sure it doesnt stay locked
+					// Unsure about this:
+					if (settings::settingsMutex.try_lock()) {
+						lg.d("!!!MAIN: MUTEX LOCKED (exception catch)!!!");
+						settings::settingsMutex.unlock(); // Make sure it doesnt stay locked
+						lg.d("MAIN: MUTEX UNLOCKED (exception catch)");
+					}
 					bool internetConnectedAfterError = InternetConnected();
 					lg.e("Critical failure: ", e);
 					lg.e("Failure #", count, ", waiting 1 min and retrying.");

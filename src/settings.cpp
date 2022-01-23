@@ -2,6 +2,7 @@
 #include "settings.h"
 #include <vector>
 #include <nlohmann/json.hpp>
+#include <thread>
 
 static Log lg("Settings", Log::LogLevel::Debug);
 
@@ -140,4 +141,19 @@ int settings::getOperationShiftStart(settings::calEvent eventToCalc) {
 int settings::getOperationShiftEnd(settings::calEvent eventToCalc) {
 	int calculatedShiftEnd = eventToCalc.endTimer + this->intcommuteTime + this->intshiftEndBias;
 	return calculatedShiftEnd;
+}
+
+bool settings::settingsMutexUnlockSuccess() {
+	int counter = 0;
+	while (!settings::settingsMutex.try_lock()) {
+		lg.d("Mutex locked, WAITING FOR UNLOCK, have looped ", counter, " times.");
+		std::this_thread::sleep_for(std::chrono::milliseconds(200));
+		counter++;
+		// Enter seconds *5
+		if (counter > 40*5) {
+			lg.e("Crow Timer overlimit, returning API ERROR");
+			return false;
+		}
+	}
+	return true;
 }

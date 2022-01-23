@@ -152,7 +152,8 @@ public:
 	// API Port for webserver, must restart app to change
 	static int u_apiPort;
 
-
+	// Returns true if unlocks, false if timeout
+	static bool settingsMutexUnlockSuccess();
 
 	class calEvent
 	{

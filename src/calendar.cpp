@@ -190,7 +190,7 @@ void initiateCal()
 
 
 		// The custom myCalEvents vector is initialized
-		lg.d(person->u_name, "'s calendar ignored words filtered, now " + std::to_string(person->allEvents.myCalEvents.size()) + " events down from " + std::to_string(calEventsVector.size()) + ". (includes past events)");
+		//lg.d(person->u_name, "'s calendar ignored words filtered, now " + std::to_string(person->allEvents.myCalEvents.size()) + " events down from " + std::to_string(calEventsVector.size()) + ". (includes past events)");
 
 		// Parse myCalEvents items to get their event start-end times set as datetime objects
 		for (settings::calEvent& event : person->allEvents.myCalEvents)
@@ -485,6 +485,7 @@ string settings::calEventGroup::eventTimeCheck(int minsBefore, int minsAfter, in
 				event.updateThisEventStat(event, person);
 			}
 		}
+		lg.b();
 		lg.i("No further events triggered for calendar: ", person->u_name);
 		person->allEvents.updateNextFutureEvent(hoursFuture, person);
 	}
@@ -517,7 +518,7 @@ string settings::calEventGroup::eventTimeCheck(int minsBefore, int minsAfter, in
 	}
 
 	// If we're here, no event matched any parameter
-	lg.d("No events triggered for anyone with minsBefore:", minsBefore, " and minsAfter:", minsAfter, " at ", return_current_time_and_date());
+	lg.d("\nNo events triggered for anyone with minsBefore:", minsBefore, " and minsAfter:", minsAfter, " at ", return_current_time_and_date());
 	return "";
 }
 
@@ -549,7 +550,7 @@ void settings::calEventGroup::updateNextFutureEvent(int hoursFuture, settings* p
 	int earliestEventEnd = earliestEventStart;
 	tm determinedNextEvent; // the start or the end, depennding on what triggers
 	bool eventIsAnEnd = false;
-	lg.d("We have ", this->myFutureEvents.size(), " events for this person within the next ", u_hoursFutureLookAhead, " hours.");
+	lg.d("[Futures] We have ", this->myFutureEvents.size(), " events for this person within the next ", u_hoursFutureLookAhead, " hours.");
 
 	if (this->myFutureEvents.size() == 0) {
 		// No future events within range
@@ -562,10 +563,10 @@ void settings::calEventGroup::updateNextFutureEvent(int hoursFuture, settings* p
 
 	for (calEvent& event : this->myFutureEvents) {
 		if ((event.startTimer <= 0) && (event.endTimer > 0)) {
-			lg.d("!!!Negative startTimer and positive endTimer, we are during an event.");
+			lg.d("[Futures] !!!Negative startTimer and positive endTimer, we are during an event.");
 			determinedNextEvent = event.end; // The next is therefor the end
 			int minsTilTrigger = person->getOperationShiftEnd(event) - event.endTimer;
-			lg.d("minsTilTrigger is ", minsTilTrigger);
+			//lg.d("minsTilTrigger is ", minsTilTrigger);
 			tm nextEventTriggerTm = determinedNextEvent;
 			AddTime(minsTilTrigger, &nextEventTriggerTm);
 			tm nextEventTriggerTmON = nextEventTriggerTm;
@@ -598,11 +599,10 @@ void settings::calEventGroup::updateNextFutureEvent(int hoursFuture, settings* p
 				AddTime(std::stoi(settings::u_minsAfter), &nextEventTriggerTmOFF);
 				this->nextFutureTriggerOFF = string_time_and_date(nextEventTriggerTmOFF, false);
 				this->nextFutureEventType = "ShiftStart";
-				lg.d("Event Start Matches: ", string_time_and_date(event.start));
 			}
 		}
 	}
-	lg.i("Next event (future) determined to be next: ", string_time_and_date(determinedNextEvent));
+	lg.i("[Futures] Next event (future) determined to be next: ", string_time_and_date(determinedNextEvent));
 	this->nextFutureEvent = string_time_and_date(determinedNextEvent, false);
 }
 

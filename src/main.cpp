@@ -92,6 +92,9 @@ void initAll()
 		nowTime_secs = time(&nowTime_secs); // update to current time
 		lg.b();
 		initiateCal();
+
+		// Must run eventTimeCheck to update future events, result (actionToDo) is ignored though)
+		settings::calEventGroup::eventTimeCheck(stoi(settings::u_minsBefore), stoi(settings::u_minsAfter), stoi(settings::u_hoursFutureLookAhead));
 	}
 	catch (string e) {
 		lg.e("Error: ", e);

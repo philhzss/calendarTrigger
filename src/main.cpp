@@ -94,7 +94,7 @@ void initAll()
 		initiateCal();
 
 		// Must run eventTimeCheck to update future events, result (actionToDo) is ignored though)
-		settings::calEventGroup::eventTimeCheck(stoi(settings::u_minsBefore), stoi(settings::u_minsAfter), stoi(settings::u_hoursFutureLookAhead));
+		settings::calEventGroup::eventTimeCheck(stoi(settings::u_minsBefore), stoi(settings::u_minsAfter), stoi(settings::u_hoursFutureLookAhead), true);
 	}
 	catch (string e) {
 		lg.e("Error: ", e);

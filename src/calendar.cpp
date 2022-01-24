@@ -345,7 +345,7 @@ void settings::calEvent::removePastEvents(settings* person)
 }
 
 // Check if any start-end event is valid, and return appropriate string based on timers
-string settings::calEventGroup::eventTimeCheck(int minsBefore, int minsAfter, int hoursFuture)
+string settings::calEventGroup::eventTimeCheck(int minsBefore, int minsAfter, int hoursFuture, bool scanFuturesOnly)
 {
 	int futureMins = 60 * hoursFuture;
 	string result;
@@ -386,108 +386,114 @@ string settings::calEventGroup::eventTimeCheck(int minsBefore, int minsAfter, in
 				person->allEvents.myFutureEvents.push_back(event);
 			}
 
-
-			result = "fresh"; // Must be reset each loop or stays the same for all following events until overwritten again!!
-			if (operationStartOn)
-			{
-				if (!event.startOnDone) // make sure this event hasn't be triggered before
+			if (!scanFuturesOnly) {
+				result = "fresh"; // Must be reset each loop or stays the same for all following events until overwritten again!!
+				if (operationStartOn)
 				{
-					lg.p("Operation event.startTimer - person->intcommuteTime + person->intshiftStartBias = ",
-						event.startTimer - person->intcommuteTime + person->intshiftStartBias);
-					event.logDetail(minsBefore, "startOn");
-					lg.i("Event triggered for ", person->u_name);
-					result = "startOn";
-					event.startOnDone = true;
+					if (!event.startOnDone) // make sure this event hasn't be triggered before
+					{
+						lg.p("Operation event.startTimer - person->intcommuteTime + person->intshiftStartBias = ",
+							event.startTimer - person->intcommuteTime + person->intshiftStartBias);
+						event.logDetail(minsBefore, "startOn");
+						lg.i("Event triggered for ", person->u_name);
+						result = "startOn";
+						event.startOnDone = true;
+					}
+					else
+					{
+						lg.p("This event has already turned on the lights, ignoring.");
+						result = "duplicate";
+					}
+				}
+				else if (operationStartOff)
+				{
+					if (!event.startOffDone) // make sure this event hasn't be triggered before
+					{
+						lg.p("Operation event.startTimer - person->intcommuteTime + person->intshiftStartBias = ",
+							event.startTimer - person->intcommuteTime + person->intshiftStartBias);
+						event.logDetail(minsAfter, "startOff");
+						lg.i("Event triggered for ", person->u_name);
+						result = "startOff";
+						event.startOffDone = true;
+					}
+					else
+					{
+						lg.p("This event has already turned off the lights, ignoring.");
+						result = "duplicate";
+					}
+				}
+				else if (operationEndOn)
+				{
+					if (!event.endOnDone) // make sure this event hasn't be triggered before
+					{
+						lg.p("Operation event.startTimer - person->intcommuteTime + person->intshiftStartBias = ",
+							event.endTimer + person->intshiftEndBias);
+						event.logDetail(minsBefore, "endOn");
+						lg.i("Event triggered for ", person->u_name);
+						if (settings::u_shiftEndingsTriggerLight) {
+							result = "endOn";
+							event.endOnDone = true;
+						}
+						else {
+							lg.i("Event end would have triggered endOff, skipping due to settings");
+						}
+					}
+					else
+					{
+						lg.p("This event has already turned on the lights, ignoring.");
+						result = "duplicate";
+					}
+				}
+				else if (operationEndOff)
+				{
+					if (!event.endOffDone) // make sure this event hasn't be triggered before
+					{
+						lg.p("Operation event.startTimer - person->intcommuteTime + person->intshiftStartBias = ",
+							event.endTimer + person->intshiftEndBias);
+						event.logDetail(minsAfter, "endOff");
+						lg.i("Event triggered for ", person->u_name);
+						if (settings::u_shiftEndingsTriggerLight) {
+							result = "endOff";
+							event.endOffDone = true;
+						}
+						else {
+							lg.i("Event end would have triggered endOff, skipping due to settings");
+						}
+					}
+					else
+					{
+						lg.p("This event has already turned off the lights, ignoring.");
+						result = "duplicate";
+					}
+				}
+				else if (operationStartHold || operationEndHold)
+				{
+					lg.d("Waiting between On & Off timers, holding (operationHold // duplicate)");
+					result = "duplicate";
 				}
 				else
 				{
-					lg.p("This event has already turned on the lights, ignoring.");
-					result = "duplicate";
+					lg.p("No match for startOn: ", event.startTimer - minsBefore,
+						"\nNo match for startOff: ", event.startTimer + minsAfter,
+						"\nNo match for endOn: ", event.endTimer - minsBefore,
+						"\nNo match for endOff: ", event.endTimer + minsAfter);
 				}
-			}
-			else if (operationStartOff)
-			{
-				if (!event.startOffDone) // make sure this event hasn't be triggered before
+				if (result != "" && result != "fresh") // If result is blank (it will be for all non triggered events), we don't want it
 				{
-					lg.p("Operation event.startTimer - person->intcommuteTime + person->intshiftStartBias = ",
-						event.startTimer - person->intcommuteTime + person->intshiftStartBias);
-					event.logDetail(minsAfter, "startOff");
-					lg.i("Event triggered for ", person->u_name);
-					result = "startOff";
-					event.startOffDone = true;
+					lg.i(person->u_name, "'s schedule has a match, calculated result: ", result);
+					results.push_back(result); // Add all results into vector
+					event.updateThisEventStat(event, person);
 				}
-				else
-				{
-					lg.p("This event has already turned off the lights, ignoring.");
-					result = "duplicate";
-				}
-			}
-			else if (operationEndOn)
-			{
-				if (!event.endOnDone) // make sure this event hasn't be triggered before
-				{
-					lg.p("Operation event.startTimer - person->intcommuteTime + person->intshiftStartBias = ",
-						event.endTimer + person->intshiftEndBias);
-					event.logDetail(minsBefore, "endOn");
-					lg.i("Event triggered for ", person->u_name);
-					if (settings::u_shiftEndingsTriggerLight) {
-						result = "endOn";
-						event.endOnDone = true;
-					}
-					else {
-						lg.i("Event end would have triggered endOff, skipping due to settings");
-					}
-				}
-				else
-				{
-					lg.p("This event has already turned on the lights, ignoring.");
-					result = "duplicate";
-				}
-			}
-			else if (operationEndOff)
-			{
-				if (!event.endOffDone) // make sure this event hasn't be triggered before
-				{
-					lg.p("Operation event.startTimer - person->intcommuteTime + person->intshiftStartBias = ",
-						event.endTimer + person->intshiftEndBias);
-					event.logDetail(minsAfter, "endOff");
-					lg.i("Event triggered for ", person->u_name);
-					if (settings::u_shiftEndingsTriggerLight) {
-						result = "endOff";
-						event.endOffDone = true;
-					}
-					else {
-						lg.i("Event end would have triggered endOff, skipping due to settings");
-					}
-				}
-				else
-				{
-					lg.p("This event has already turned off the lights, ignoring.");
-					result = "duplicate";
-				}
-			}
-			else if (operationStartHold || operationEndHold)
-			{
-				lg.d("Waiting between On & Off timers, holding (operationHold // duplicate)");
-				result = "duplicate";
-			}
-			else
-			{
-				lg.p("No match for startOn: ", event.startTimer - minsBefore,
-					"\nNo match for startOff: ", event.startTimer + minsAfter,
-					"\nNo match for endOn: ", event.endTimer - minsBefore,
-					"\nNo match for endOff: ", event.endTimer + minsAfter);
-			}
-			if (result != "" && result != "fresh") // If result is blank (it will be for all non triggered events), we don't want it
-			{
-				lg.i(person->u_name, "'s schedule has a match, calculated result: ", result);
-				results.push_back(result); // Add all results into vector
-				event.updateThisEventStat(event, person);
-			}
-		}
-		lg.b();
-		lg.i("No further events triggered for calendar: ", person->u_name);
+			} // If scan futures only
+		} // For every event
 		person->allEvents.updateNextFutureEvent(hoursFuture, person);
+		if (scanFuturesOnly) {
+			// We're done for future events
+			lg.d("scanFuturesOnly eventTimeCheck done, returning");
+			return "";
+		}
+		lg.i("No further events triggered for calendar: ", person->u_name);
+		lg.b();
 	}
 	// Parse all the results to choose what to do
 	if (std::any_of(results.cbegin(), results.cend(), [](string anyResult) { return anyResult.find("startOn") != std::string::npos; }))

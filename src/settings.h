@@ -221,7 +221,7 @@ public:
 		string nextFutureTriggerOFF;
 
 		// Static methods
-		static string eventTimeCheck(int minsBefore, int minsAfter, int hoursFuture);
+		static string eventTimeCheck(int minsBefore, int minsAfter, int hoursFuture, bool scanFuturesOnly=false);
 
 		// Check if any person is preventing light shut down
 		static string verifyCanLightTurnOffAction(string action);

@@ -487,13 +487,15 @@ string settings::calEventGroup::eventTimeCheck(int minsBefore, int minsAfter, in
 			} // If scan futures only
 		} // For every event
 		person->allEvents.updateNextFutureEvent(hoursFuture, person);
-		if (scanFuturesOnly) {
-			// We're done for future events
-			lg.d("scanFuturesOnly eventTimeCheck done, returning");
-			return "";
+		if (!scanFuturesOnly) {
+			lg.i("No further events triggered for calendar: ", person->u_name);
+			lg.b();
 		}
-		lg.i("No further events triggered for calendar: ", person->u_name);
-		lg.b();
+	}
+	if (scanFuturesOnly) {
+		// We're done for future events
+		lg.d("scanFuturesOnly eventTimeCheck done, returning");
+		return "";
 	}
 	// Parse all the results to choose what to do
 	if (std::any_of(results.cbegin(), results.cend(), [](string anyResult) { return anyResult.find("startOn") != std::string::npos; }))

@@ -187,13 +187,13 @@ void DoCrowAPI(std::vector<settings*>* people, string* minsBeforeTriggerOn,
 
 	//define your endpoint at the root directory
 	CROW_ROUTE(app, "/api")([&people, &minsBeforeTriggerOn, &minsAfterTriggerOff, &doShiftEndings]() {
-		lg.d("///////////Start of Crow request");
+		lgC.d("///////////Start of Crow request");
 		crow::json::wvalue json;
 
 		if (!settings::settingsMutexUnlockSuccess()) {
 			return json["app"] = "ERROR";
 		}
-		lg.d("!!!CROW: MUTEX LOCKED!!!");
+		lgC.d("!!!CROW: MUTEX LOCKED!!!");
 
 		lgC.d("Crow HTTP request; Crow thread has ", people->size(), " people.");
 		json["app"]["minsBeforeTriggerOn"] = lg.prepareOnly(*minsBeforeTriggerOn);
@@ -218,10 +218,11 @@ void DoCrowAPI(std::vector<settings*>* people, string* minsBeforeTriggerOn,
 				["commuteTime"] = lg.prepareOnly(person->u_commuteTime);
 			json[lg.prepareOnly(person->u_name)]
 				["wordsToIgnore"] = person->ignoredWordsPrint();
+			lgC.d("json return next event for ", person->u_name, ": ", person->allEvents.nextFutureEvent);
 		}
 		settings::settingsMutex.unlock();
-		lg.d("CROW: MUTEX UNLOCKED");
-		lg.d("///////////End of Crow request -- returning");
+		lgC.d("CROW: MUTEX UNLOCKED");
+		lgC.d("///////////End of Crow request -- returning");
 		return json;
 
 		});

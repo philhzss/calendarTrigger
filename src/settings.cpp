@@ -149,9 +149,9 @@ bool settings::settingsMutexUnlockSuccess() {
 		lg.d("Mutex locked, WAITING FOR UNLOCK, have looped ", counter, " times.");
 		std::this_thread::sleep_for(std::chrono::milliseconds(200));
 		counter++;
-		// Enter seconds *5
-		if (counter > 40*5) {
-			lg.e("Crow Timer overlimit, returning API ERROR");
+		// Enter seconds*5
+		if (counter > 5*5) {
+			lg.e("Mutex timer overlimit, settingsMutexUnlockSuccess returning FALSE");
 			return false;
 		}
 	}

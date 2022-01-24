@@ -187,6 +187,7 @@ void DoCrowAPI(std::vector<settings*>* people, string* minsBeforeTriggerOn,
 
 	//define your endpoint at the root directory
 	CROW_ROUTE(app, "/api")([&people, &minsBeforeTriggerOn, &minsAfterTriggerOff, &doShiftEndings]() {
+		lg.d("///////////Start of Crow request");
 		crow::json::wvalue json;
 
 		if (!settings::settingsMutexUnlockSuccess()) {
@@ -219,7 +220,8 @@ void DoCrowAPI(std::vector<settings*>* people, string* minsBeforeTriggerOn,
 				["wordsToIgnore"] = person->ignoredWordsPrint();
 		}
 		settings::settingsMutex.unlock();
-		lg.d("CROW: MUTEX UNLOCKED -- returning Crow request");
+		lg.d("CROW: MUTEX UNLOCKED");
+		lg.d("///////////End of Crow request -- returning");
 		return json;
 
 		});
@@ -330,7 +332,7 @@ int main()
 					lg.e("Critical failure: ", e);
 					lg.e("Failure #", count, ", waiting 1 min and retrying.");
 					lg.i("Is internet connected? Will stop if false -> ", internetConnectedAfterError);
-					sleep(60);
+					std::this_thread::sleep_for(std::chrono::seconds(60));
 					if (++count == maxTries || !internetConnectedAfterError)
 					{
 						lg.e("ERROR ", count, " out of max ", maxTries, "!!! Stopping, reason ->\n", e);

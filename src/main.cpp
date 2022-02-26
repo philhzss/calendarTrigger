@@ -190,7 +190,7 @@ void DoCrowAPI(std::vector<settings*>* people, string* minsBeforeTriggerOn,
 		lgC.d("///////////Start of Crow request");
 		crow::json::wvalue json;
 
-		if (!settings::settingsMutexUnlockSuccess()) {
+		if (!settings::settingsMutexLockSuccess("crow request")) {
 			return json["app"] = "ERROR";
 		}
 		lgC.d("!!!CROW: MUTEX LOCKED!!!");
@@ -256,7 +256,7 @@ int main()
 			while (true) // max tries loop
 			{
 				try {
-					if (!settings::settingsMutexUnlockSuccess()) {
+					if (!settings::settingsMutexLockSuccess("before initAll")) {
 						throw "Mutex timeout in main thread (before initAll)";
 					}
 					lg.d("!!!MAIN: MUTEX LOCKED (before initAll)!!!");
@@ -269,9 +269,9 @@ int main()
 					do // Trigger loop
 					{
 						nowTime_secs = time(&nowTime_secs); // update to current time
-						
-						if (!settings::settingsMutexUnlockSuccess()) {
-							throw "Mutex timeout in main thread (before initAll)";
+
+						if (!settings::settingsMutexLockSuccess("before updateValidEventTimers")) {
+							throw "Mutex timeout in main thread (before updateValidEventTimers)";
 						}
 						lg.d("!!!MAIN: MUTEX LOCKED (before updateValidEventTimers)!!!");
 						// Thread safe
@@ -293,7 +293,7 @@ int main()
 							lg.i("Command poweroff sent to device, result: ", result);
 						}
 
-						if (!settings::settingsMutexUnlockSuccess()) {
+						if (!settings::settingsMutexLockSuccess("before eventTimeCheck")) {
 							throw "Mutex timeout in main thread (inside triggerLoop)";
 						}
 						lg.d("!!!MAIN: MUTEX LOCKED (before eventTimeCheck)!!!");
@@ -323,17 +323,14 @@ int main()
 					break; // Must exit maxTries loop if no error caught
 				}
 				catch (string e) {
-					// Unsure about this:
-					if (settings::settingsMutex.try_lock()) {
-						lg.d("!!!MAIN: MUTEX LOCKED (exception catch)!!!");
-						settings::settingsMutex.unlock(); // Make sure it doesnt stay locked
-						lg.d("MAIN: MUTEX UNLOCKED (exception catch)");
-					}
+					// This is to make sure the mutex doesn't stay locked forever. "Chances are" it was locked when we caught the exception
+					settings::settingsMutex.unlock();
+
 					bool internetConnectedAfterError = InternetConnected();
 					lg.e("Critical failure: ", e);
-					lg.e("Failure #", count, ", waiting 1 min and retrying.");
+					lg.e("Failure #", count, ", waiting 10 secs and retrying.");
 					lg.i("Is internet connected? Will stop if false -> ", internetConnectedAfterError);
-					std::this_thread::sleep_for(std::chrono::seconds(60));
+					std::this_thread::sleep_for(std::chrono::seconds(10));
 					if (++count == maxTries || !internetConnectedAfterError)
 					{
 						lg.e("ERROR ", count, " out of max ", maxTries, "!!! Stopping, reason ->\n", e);

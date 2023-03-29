@@ -139,7 +139,18 @@ void initiateCal()
 		string calRawData = GetCalRawData(person);
 
 		// Cut out the "header" data from the raw cal string
-		int	calHeadEndPos = calRawData.find("END:VTIMEZONE");
+		int	calHeadEndPos;
+		size_t endPos = calRawData.find("END:VTIMEZONE");
+		calHeadEndPos;
+		if (endPos != string::npos)
+		{
+			calHeadEndPos = endPos;
+		}
+		else {
+			// If the calendar is in UTC there is no END:VTIMEZONE so we need this:
+			calHeadEndPos = calRawData.find("X-WR-TIMEZONE:UTC");
+		};
+
 		calRawData = calRawData.substr(calHeadEndPos);
 
 		// Create custom calEvents and stick them in a vector (code by Carl!!!!)

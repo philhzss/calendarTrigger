@@ -75,7 +75,7 @@
   <ImportGroup Label="PropertySheets" />
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
-    <IncludePath>C:\Users\Phil\Google Drive\dev\calendarTrigger\include;$(IncludePath)</IncludePath>
+    <IncludePath>G:\My Drive\dev\calendarTrigger\include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM'">
     <IncludePath>C:\Users\Phil\Google Drive\dev\Tesla auto-sched climate\Tesla Climate Scheduler cpp\calendarTrigger\include;$(IncludePath)</IncludePath>

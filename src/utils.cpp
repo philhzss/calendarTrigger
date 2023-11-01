@@ -8,6 +8,8 @@ using std::endl;
 using std::cin;
 using std::string;
 
+static Log lg("Utils", Log::LogLevel::Debug);
+
 // CURL stuff
 size_t WriteCallback(void* contents, size_t size, size_t nmemb, void* userp)
 {
@@ -16,31 +18,51 @@ size_t WriteCallback(void* contents, size_t size, size_t nmemb, void* userp)
 }
 string curl_GET(string url)
 {
+	lg.p("curl_GET - start");
 	const char* const url_to_use = url.c_str();
 	CURL* curl;
 	CURLcode res;
 	// Buffer to store result temporarily:
 	string readBuffer;
+	lg.p("Before curl_global_init");
 	curl_global_init(CURL_GLOBAL_DEFAULT);
+	lg.p("Before curl_easy_init");
 	curl = curl_easy_init();
 	if (curl) {
 		curl_easy_setopt(curl, CURLOPT_URL, url_to_use);
+		lg.p("Before WriteCallback");
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+		lg.p("Before CURLOPT_WRITEDATA");
 		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
+
+		curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L);
+
+		lg.p("Before curl_easy_perform");
 		/* Perform the request, res will get the return code */
 		res = curl_easy_perform(curl);
-		/* Check for errors */
-		if (res != CURLE_OK)
-		{
-			fprintf(stderr, "curl_easy_perform() failed: %s\n",
-				curl_easy_strerror(res));
-			throw "curl_easy_perform() failed: " + std::to_string(res);
-		}
+		lg.p("curl_GET - res");
+		cout << res;
 
+		lg.p("curl_GET - pre cleanup");
 		/* always cleanup */
 		curl_easy_cleanup(curl);
+
+		/* Check for errors */
+		lg.p("Before error_check");
+		if (res != CURLE_OK)
+		{
+			lg.p("Before error itself");
+			fprintf(stderr, "curl_easy_perform() failed: %s\n",
+				curl_easy_strerror(res));
+			lg.p("Before error throw", res);
+			throw "curl_easy_perform() failed: " + std::to_string(res);
+		}
+		lg.p("Before leaving curl loop");
 	}
+	lg.p("Before curl_global_cleanup");
+
 	curl_global_cleanup();
+	lg.p("Before curl function end");
 	return readBuffer;
 }
 

@@ -9,10 +9,11 @@ static Log lg("Calendar", Log::LogLevel::Debug);
 
 // Get long string of raw calendar data from URL
 string GetCalRawData(settings* person) {
-
+	lg.p("GetCalRawData - start");
 	try
 	{
 		string rawCalContent = curl_GET(person->u_calendarURL);
+		lg.p("GetCalRawData - curl_GET success");
 		if (rawCalContent.find("VCALENDAR") != std::string::npos)
 		{
 			lg.p("VCALENDAR found, ", person->u_name, "'s link is a valid calendar");
@@ -27,7 +28,7 @@ string GetCalRawData(settings* person) {
 	{
 		throw "initiateCal/GetCalRawData error: " + e + "\nCheck calendar URL??? Internet connection?";
 	};
-
+	lg.p("GetCalRawData - end (should never be here)");
 }
 
 // Take the entire ICS file string and convert it into vector of strings with events
@@ -134,6 +135,7 @@ void settings::calEvent::logDetail(int minsTrigger, string action)
 // Function to be called from main.cpp, creates myCalEvents vector containing all calEvent objects from scratch
 void initiateCal()
 {
+	lg.p("initiateCal - start");
 	for (settings* person : settings::people)
 	{
 		string calRawData = GetCalRawData(person);
@@ -157,7 +159,7 @@ void initiateCal()
 		std::vector<string> calEventsVector = calStringSep(calRawData);
 
 
-
+		lg.p("initiateCal - start filtering words");
 		for (string s : calEventsVector)
 		{
 			bool noIgnoredWordsInEvent = true;

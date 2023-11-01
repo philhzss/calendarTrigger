@@ -146,7 +146,7 @@ int settings::getOperationShiftEnd(settings::calEvent eventToCalc) {
 bool settings::settingsMutexLockSuccess(string reason) {
 	int counter = 0;
 	while (!settings::settingsMutex.try_lock()) {
-		lg.d("Mutex locked (", reason, "), WAITING FOR UNLOCK, have looped ", counter, " times.");
+		lg.p("Mutex locked (", reason, "), WAITING FOR UNLOCK, have looped ", counter, " times.");
 		std::this_thread::sleep_for(std::chrono::milliseconds(200));
 		counter++;
 		// Enter seconds*5

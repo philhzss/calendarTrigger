@@ -329,9 +329,12 @@ int main()
 					bool internetConnectedAfterError = InternetConnected();
 					lg.e("Critical failure: ", e);
 					lg.e("Failure #", count, ", waiting 10 secs and retrying.");
-					lg.i("Is internet connected? Will stop if false -> ", internetConnectedAfterError);
+					lg.i("Is internet connected? Will wait more if false -> ", internetConnectedAfterError);
+					if (!internetConnectedAfterError) {
+						std::this_thread::sleep_for(std::chrono::seconds(20));
+					}
 					std::this_thread::sleep_for(std::chrono::seconds(10));
-					if (++count == maxTries || !internetConnectedAfterError)
+					if (++count == maxTries)
 					{
 						lg.e("ERROR ", count, " out of max ", maxTries, "!!! Stopping, reason ->\n", e);
 						return EXIT_FAILURE;
